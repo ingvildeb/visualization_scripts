@@ -4,15 +4,22 @@ import pandas as pd
 import json
 from collections import defaultdict
 from glob import glob
+from pathlib import Path
 
+## PATH SETUP (do not change)
 
-##### VARIABLE SETUP - change these to run code
+# Set the base path to the current script
+base_path = Path(__file__).parent.resolve()
 
-# Set path to data files and directories
-allen2intfile = r"C:\Users\ingvieb\OneDrive - Universitetet i Oslo\Documents\Github\miscellaneous_internal_scripts\CCFv3_OntologyStructure_u16.xlsx" # Path to CCFv3_OntologyStructure_u16.xlsx file 
-file = r"X:\Labmembers\Holley\20250131_APOE_HFDvsnHFD\Analysis\Nutil_Quantification\Reports\20250131_HG_APOE_HFDvsnHFD_IBA1_RefAtlasRegions\20250131_HG_APOE_HFDvsnHFD_IBA1_RefAtlasRegions_s001_updated.csv" # Path to your file containing cell densities
-hierarchy_file = r"C:\Users\ingvieb\OneDrive - Universitetet i Oslo\Documents\Github\brain_section_scripts\graphing_demo_data/CCF_v3_ontology.json" # Path to CCF_v3_ontology.json 
-custom_hier_path = r"C:\Users\ingvieb\OneDrive - Universitetet i Oslo\Documents\Github\miscellaneous_internal_scripts\hierarchies\\" # Folder containing hierarchy xlsx files
+# Define file paths using pathlib
+allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
+hierarchy_file = base_path / "files" / "CCF_v3_ontology.json"
+custom_hier_path = base_path / "files"
+
+#### USER INPUTS
+file = base_path / "files" / "counted_3d_cells.csv" # Set path to your data file (example data used here)
+out_filename_prefix = "example_filename" # Enter a prefix which will be used when saving your plots
+out_format = "tif" # Choose your desired output format; could be png, tif, svg, jpg, pdf
 
 # Set your desired level for displaying bars. Options available are listed below
 hierarchy = "FullHierarchy"
@@ -68,7 +75,7 @@ hierarchy_names = [
 ]
 
 # Create a dictionary to store the paths
-hierarchy_paths = {name: f"{custom_hier_path}{name}.xlsx" for name in hierarchy_names}  # Assuming Excel files with a .xlsx extension
+hierarchy_paths = {name: custom_hier_path / f"{name}.xlsx" for name in hierarchy_names}
 grouped_hierarchies = ["CustomLevel1_gm", "CustomLevel2_gm", "CustomLevel3_gm", "FullHierarchy"]
 
 # Read information from Allen atlas hierarchy file
@@ -155,7 +162,6 @@ for region in hierarchy_regions.get(hierarchy, []):
 
     # Find the parent region for the current region
     parent_region = child_to_parent_dict.get(region_id, '')
-    print(region_name, parent_region)
     parent_labels.append(parent_region)
 
 # Assign parent where missing using subsequent parent's assignment. It works because these are only the higher-level regions that always appear before their more granular parts.
@@ -216,4 +222,11 @@ if hierarchy in grouped_hierarchies:
         add_bracket(ax, (start, end), y_pos=-0.005, line_width=2)
 
 plt.tight_layout()
+
+# Output path for plots
+out_path = base_path / "plots"
+out_path.mkdir(parents=True, exist_ok=True)  # Creates the directory if it doesn't exist
+
+plt.savefig(out_path / f"{out_filename_prefix}_{hierarchy}.{out_format}")
 plt.show()
+
