@@ -19,7 +19,7 @@ files = [
 out_filename_prefix = "NeuN_P533_C57_"
 out_format = "tif"
 plot_title = "NeuN cell densities"
-selected_hierarchy = "CustomLevel1_gm"
+selected_hierarchy = "FullHierarchy"
 specified_parent = "Hippocampal formation"
 
 #### MAIN CODE, do not change
@@ -40,14 +40,13 @@ all_densities = []
 
 for file in files:
     data_file = load_and_prepare_data(file, allen2intfile)
-    id_mapping, color_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
+    id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, "Allen_STlevel_5")
 
     # Collect the densities and corresponding region names, colors and parent regions
+    
     densities_in_file = collect_densities(data_file, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
     all_densities.append(densities_in_file)
-
-all_densities_normalized = normalize_density_values(all_densities)
 
 # Get average densities and SEM if n>1
 if n > 1:

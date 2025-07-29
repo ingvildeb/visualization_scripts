@@ -55,7 +55,7 @@ all_individual_densities = {}  # Store individual densities in a dictionary of d
 for ID, file in IDs_to_files_dict.items():
     ID_group = grouping.get(ID)
     data_file = load_and_prepare_data(file, allen2intfile)
-    id_mapping, color_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
+    id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, "Allen_STlevel_5")
 
     # Collect the densities
