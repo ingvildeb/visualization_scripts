@@ -47,6 +47,7 @@ def prepare_hierarchy_info(hierarchy_file, custom_hier_path):
     # Map 'id' to 'name'
     id_mapping = get_mappings(json_data, 'id', 'name')  
     color_mapping = get_mappings(json_data, 'id', 'color_hex_triplet')
+    acronym_mapping = get_mappings(json_data, 'id', 'acronym')
 
     hierarchy_names = [
         "Allen_STlevel_5",
@@ -68,7 +69,7 @@ def prepare_hierarchy_info(hierarchy_file, custom_hier_path):
         for name, path in hierarchy_paths.items()
     }
     
-    return id_mapping, color_mapping, hierarchy_regions
+    return id_mapping, color_mapping, acronym_mapping, hierarchy_regions
 
 
 
