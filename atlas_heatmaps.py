@@ -31,7 +31,7 @@ CITATION POLICY
 
 If you use these plots in a publication or poster, make sure to cite the brainglobe-heatmap package according to their citation policy:
 
-Federico Claudi, Adam Tyson, Luigi Petrucco, Mathieu Bourdenx, carlocastoldi, Rami Hamati, & Alessandro Felder. 
+Federico Claudi, Adam Tyson, Luigi Petrucco, Mathieu Bourdenx, Carlo Castoldi, Rami Hamati, & Alessandro Felder. 
 (2024). brainglobe/brainglobe-heatmap. Zenodo. https://doi.org/10.5281/zenodo.10375287
 
 """
@@ -63,7 +63,7 @@ colormap = 'viridis'
 n = 12  
 
 # Choose the orientation of your atlas plates. Options are frontal, sagittal and horizontal.
-orientation = "frontal"
+orientation = "horizontal"
 
 ### MAIN CODE, do not edit
 # Path setup
@@ -113,7 +113,7 @@ elif orientation == "sagittal":
 elif orientation == "horizontal":
     common_xlim = (6000, -6000)
     common_ylim = (6000, -8000)
-    positions = np.linspace(1000, 5000, n).tolist()
+    positions = np.linspace(1000, 7000, n).tolist()
 
 # Calculate width and height from common_limits
 width = abs(common_xlim[1] - common_xlim[0])
