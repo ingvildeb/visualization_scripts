@@ -71,9 +71,6 @@ def prepare_hierarchy_info(hierarchy_file, custom_hier_path):
     
     return id_mapping, color_mapping, acronym_mapping, hierarchy_regions
 
-
-
-
 def create_child_to_parent_mapping(custom_hier_path, hierarchy_name):
     """Create child-to-parent mapping from Allen ST level hierarchy Excel."""
     grouping_data = pd.read_excel(custom_hier_path / f"{hierarchy_name}.xlsx")
@@ -109,29 +106,28 @@ def load_and_prepare_data(file_path, allen2intfile):
     data_file = create_reverse_id_mapping(data_file, allen2intfile)
     return data_file
 
-def collect_densities(data_file, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent = ""):
-
-    all_densities = {}
+def collect_values(data_file, values_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent=""):
+    all_values = {}
 
     if specified_parent:
         for region_id in hierarchy_regions.get(selected_hierarchy, []):
             parent_name = child_to_parent_dict.get(region_id, None)
             volume_value = data_file.loc[data_file["ROI_id"] == region_id, "ROI_Volume_mm_3"].values[0]
             if parent_name == specified_parent and volume_value != 0:
-                density = data_file.loc[data_file["ROI_id"] == region_id, "cell_density"].values[0]
-                all_densities[region_id] = density
-            else: continue
+                value = data_file.loc[data_file["ROI_id"] == region_id, values_column].values[0]
+                all_values[region_id] = value
+            else:
+                continue
     else:
         for region_id in hierarchy_regions.get(selected_hierarchy, []):
             volume_value = data_file.loc[data_file["ROI_id"] == region_id, "ROI_Volume_mm_3"].values[0]
             if volume_value != 0:
-                density = data_file.loc[data_file["ROI_id"] == region_id, "cell_density"].values[0]
-                all_densities[region_id] = density
+                value = data_file.loc[data_file["ROI_id"] == region_id, values_column].values[0]
+                all_values[region_id] = value
 
-    return all_densities
+    return all_values
 
-
-def average_density_dicts(dict_list):
+def average_value_dicts(dict_list):
     # Initialize dictionaries to hold the sums, counts, and sums of squares
     sums = {}
     counts = {}
@@ -164,19 +160,152 @@ def average_density_dicts(dict_list):
 
     return averages, standard_errors
 
-
 def add_bracket(ax, x_range, y_pos=1.05, line_width=2):
     start, end = x_range
     ax.annotate('', xy=(start, y_pos), xytext=(end, y_pos),
                 arrowprops=dict(arrowstyle='-', lw=line_width, color='black'),
                 annotation_clip=False, xycoords=('data', 'axes fraction'), textcoords=('data', 'axes fraction'))
 
-def create_barplot(save_path, region_names, densities, region_colors, parent_labels, plot_title, group_labels=False, yerr=None, selected_hierarchy = "FullHierarchy", specified_parent = None, rotation=45, 
-                   ha='right', fontsize_labels=16, fontsize_titles=20, figsize=(35, 15), ylabel="Densities"):
+def normalize_value_values(value_dict_list):
+    all_value_values = [value for d in value_dict_list for value in d.values()]
+
+    min_value = np.nanmin(all_value_values)
+    max_value = np.nanmax(all_value_values)
+    
+    # Use min-max normalization
+    normalized_dicts_list = []
+    for d in value_dict_list:
+        normalized_dict = {}
+        for key, value in d.items():
+            normalized = (value - min_value) / (max_value - min_value) if max_value > min_value else value
+            normalized_dict[key] = normalized
+
+        normalized_dicts_list.append(normalized_dict)
+    
+    return normalized_dicts_list
+
+def create_heatmap(save_path, value_dicts, region_names, title='Value Heatmap', cmap='viridis'):
+    """
+    Create a heatmap of normalized value values from a list of dictionaries.
+
+    Args:
+        save_path (Path): Where to save the heatmap image.
+        value_dicts (list): List of dictionaries containing region names and normalized values.
+        region_names (list): Corresponding region names for the y-axis labels.
+        title (str): Title of the heatmap.
+        cmap (str): Colormap for the heatmap.
+    """
+    # Extract unique regions
+    unique_regions = list(set(region_names))
+    num_cases = len(value_dicts)
+
+    # Create a 2D array to hold the value data
+    heatmap_data = np.zeros((len(unique_regions), num_cases))
+    
+    # Create a mapping of region names to index for the heatmap
+    region_index = {region: idx for idx, region in enumerate(unique_regions)}
+
+    # Fill heatmap data based on region names and their normalized values
+    for j, d in enumerate(value_dicts):
+        for region, value in d.items():
+            if region in region_index:  # Check if the region is in the unique regions
+                heatmap_data[region_index[region], j] = value
+
+    # Create a heatmap using seaborn
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(heatmap_data, annot=True, cmap=cmap, xticklabels=range(1, num_cases + 1),
+                yticklabels=unique_regions, cbar_kws={'label': 'Normalized Value'})
+
+    plt.title(title)
+    plt.xlabel('Case Number')
+    plt.ylabel('Regions')
+
+    plt.savefig(save_path)
+    plt.show()
+    plt.close()
+
+def calculate_averages_per_group(all_individual_values):
+    """
+    Calculate average values and standard errors from individual value data.
+
+    Parameters:
+    - all_individual_values: dict
+        A dictionary where keys are region IDs and values are dictionaries of group values.
+
+    Returns:
+    - avg_values_to_group_dict: dict
+        A dictionary with averaged value values for each group.
+    - se_to_region_group_dict: dict
+        A dictionary with standard error values for each region by group.
+    - n_to_group_dict: dict
+        A dictionary with count of values for each group.
+    """
+    avg_values_to_group_dict = {}
+    se_to_region_group_dict = {}
+    n_to_group_dict = {}
+
+    for region_id, groups_data in all_individual_values.items():
+        for group, values in groups_data.items():
+            n = len(values)
+
+            if n > 1:
+                # Wrap values in a list of dicts for averaging
+                value_dict, se_dict = average_value_dicts([{region_id: value} for value in values])
+                avg_values_to_group_dict.setdefault(group, {})[region_id] = value_dict[region_id]
+                se_to_region_group_dict.setdefault(region_id, {})[group] = se_dict[region_id]
+            else:
+                avg_values_to_group_dict.setdefault(group, {})[region_id] = values[0]  # No averaging possible
+                se_to_region_group_dict.setdefault(region_id, {})[group] = None
+
+            n_to_group_dict.setdefault(group, 0)
+            n_to_group_dict[group] = n
+
+    return avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict
+
+def perform_t_tests(all_individual_values, group1_name, group2_name):
+    """
+    Perform t-tests between two specified groups for all regions
+    and return a dictionary with significance levels.
+
+    Parameters:
+    - all_individual_values: dict
+        A dictionary where keys are region IDs and values are dictionaries of group values.
+    - group1_name: str
+        The name of the first group to compare.
+    - group2_name: str
+        The name of the second group to compare.
+
+    Returns: 
+    - significant_results: dict
+        A dictionary with region IDs as keys and significance levels as values.
+    """
+    significant_results = {}  # Dictionary to hold significance results
+
+    for region in all_individual_values.keys():
+        group1_data = all_individual_values[region].get(group1_name, [])
+        group2_data = all_individual_values[region].get(group2_name, [])
+
+        if group1_data and group2_data:  # Proceed only if both groups have data
+            t_stat, p_value = stats.ttest_ind(group1_data, group2_data)
+            if p_value < 0.001:
+                significant_results[region] = '***'
+            elif p_value < 0.01:
+                significant_results[region] = '**'
+            elif p_value < 0.05:
+                significant_results[region] = '*'
+            else:
+                significant_results[region] = None  # Not significant
+
+    return significant_results
+
+def create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, 
+                   group_labels=False, yerr=None, selected_hierarchy="FullHierarchy", specified_parent=None, rotation=45, 
+                   ha='right', fontsize_labels=16, fontsize_titles=20, figsize=(35, 15), ylabel="Values"):
+    
     # Plot the data
     fig, ax = plt.subplots(figsize=figsize)
 
-    ax.bar(region_names, densities, yerr=yerr, color=region_colors)
+    ax.bar(region_names, values, yerr=yerr, color=region_colors)
     ax.set_ylabel(ylabel, fontsize=fontsize_labels)
     ax.set_title(plot_title, fontsize=fontsize_titles)
     ax.set_xticklabels(region_names, rotation=rotation, ha=ha, fontsize=fontsize_labels)
@@ -218,146 +347,10 @@ def create_barplot(save_path, region_names, densities, region_colors, parent_lab
     plt.savefig(save_path)
     plt.show()
 
-
-def normalize_density_values(density_dict_list):
-
-    all_density_values = [value for d in density_dict_list for value in d.values()]
-
-    min_density = np.nanmin(all_density_values)
-    max_density = np.nanmax(all_density_values)
-    
-    # Use min-max normalization
-    normalized_dicts_list = []
-    for d in density_dict_list:
-        normalized_dict = {}
-        for key, value in d.items():
-            normalized = (value - min_density) / (max_density - min_density) if max_density > min_density else value
-            normalized_dict[key] = normalized
-
-        normalized_dicts_list.append(normalized_dict)
-    
-    return normalized_dicts_list
-
-def create_heatmap(save_path, density_dicts, region_names, title='Density Heatmap', cmap='viridis'):
+def create_groupwise_barplot(save_path, regions, id_mapping, bar_values_array, se_to_region_group_dict, significant_results, 
+                             groups, n_to_group_dict, region_colors, plot_title, hatch_patterns):
     """
-    Create a heatmap of normalized density values from a list of dictionaries.
-
-    Args:
-        save_path (Path): Where to save the heatmap image.
-        density_dicts (list): List of dictionaries containing region names and normalized densities.
-        region_names (list): Corresponding region names for the y-axis labels.
-        title (str): Title of the heatmap.
-        cmap (str): Colormap for the heatmap.
-    """
-    # Extract unique regions
-    unique_regions = list(set(region_names))
-    num_cases = len(density_dicts)
-
-    # Create a 2D array to hold the density data
-    heatmap_data = np.zeros((len(unique_regions), num_cases))
-    
-    # Create a mapping of region names to index for the heatmap
-    region_index = {region: idx for idx, region in enumerate(unique_regions)}
-
-    # Fill heatmap data based on region names and their normalized densities
-    for j, d in enumerate(density_dicts):
-        for region, density in d.items():
-            if region in region_index:  # Check if the region is in the unique regions
-                heatmap_data[region_index[region], j] = density
-
-    # Create a heatmap using seaborn
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(heatmap_data, annot=True, cmap=cmap, xticklabels=range(1, num_cases + 1),
-                yticklabels=unique_regions, cbar_kws={'label': 'Normalized Density'})
-
-    plt.title(title)
-    plt.xlabel('Case Number')
-    plt.ylabel('Regions')
-
-    plt.savefig(save_path)
-    plt.show()
-    plt.close()
-
-
-def calculate_averages_per_group(all_individual_densities):
-    """
-    Calculate average densities and standard errors from individual density data.
-
-    Parameters:
-    - all_individual_densities: dict
-        A dictionary where keys are region IDs and values are dictionaries of group densities.
-
-    Returns:
-    - avg_densities_to_group_dict: dict
-        A dictionary with averaged density values for each group.
-    - se_to_region_group_dict: dict
-        A dictionary with standard error values for each region by group.
-    - n_to_group_dict: dict
-        A dictionary with count of densities for each group.
-    """
-    avg_densities_to_group_dict = {}
-    se_to_region_group_dict = {}
-    n_to_group_dict = {}
-
-    for region_id, groups_data in all_individual_densities.items():
-        for group, densities in groups_data.items():
-            n = len(densities)
-
-            if n > 1:
-                # Wrap densities in a list of dicts for averaging
-                density_dict, se_dict = average_density_dicts([{region_id: density} for density in densities])
-                avg_densities_to_group_dict.setdefault(group, {})[region_id] = density_dict[region_id]
-                se_to_region_group_dict.setdefault(region_id, {})[group] = se_dict[region_id]
-            else:
-                avg_densities_to_group_dict.setdefault(group, {})[region_id] = densities[0]  # No averaging possible
-                se_to_region_group_dict.setdefault(region_id, {})[group] = None
-
-            n_to_group_dict.setdefault(group, 0)
-            n_to_group_dict[group] = n
-
-    return avg_densities_to_group_dict, se_to_region_group_dict, n_to_group_dict
-
-
-def perform_t_tests(all_individual_densities, group1_name, group2_name):
-    """
-    Perform t-tests between two specified groups for all regions
-    and return a dictionary with significance levels.
-
-    Parameters:
-    - all_individual_densities: dict
-        A dictionary where keys are region IDs and values are dictionaries
-        of group densities.
-    - group1_name: str
-        The name of the first group to compare.
-    - group2_name: str
-        The name of the second group to compare.
-
-    Returns: 
-    - significant_results: dict
-        A dictionary with region IDs as keys and significance levels as values.
-    """
-    significant_results = {}  # Dictionary to hold significance results
-
-    for region in all_individual_densities.keys():
-        group1_data = all_individual_densities[region].get(group1_name, [])
-        group2_data = all_individual_densities[region].get(group2_name, [])
-
-        if group1_data and group2_data:  # Proceed only if both groups have data
-            t_stat, p_value = stats.ttest_ind(group1_data, group2_data)
-            if p_value < 0.001:
-                significant_results[region] = '***'
-            elif p_value < 0.01:
-                significant_results[region] = '**'
-            elif p_value < 0.05:
-                significant_results[region] = '*'
-            else:
-                significant_results[region] = None  # Not significant
-
-    return significant_results
-
-def plot_bar_chart(regions, id_mapping, bar_values_array, se_to_region_group_dict, significant_results, groups, n_to_group_dict, region_colors, plot_title, save_path):
-    """
-    Plots a bar chart of density values across regions with error bars, for two or more groups.
+    Plots a bar chart of value values across regions with error bars, for two or more groups.
     
     Parameters:
     - regions: list of region names to be labeled on the x-axis.
@@ -370,6 +363,8 @@ def plot_bar_chart(regions, id_mapping, bar_values_array, se_to_region_group_dic
     - title: title of the plot.
     """
     num_groups = len(groups)
+
+    # Make graph wider if there are more than two groups
     extra_groups = num_groups - 2
 
     x = np.arange(len(regions))  # the label locations
@@ -377,11 +372,9 @@ def plot_bar_chart(regions, id_mapping, bar_values_array, se_to_region_group_dic
     group_space = 0.05  # Space between groups of bars
     fig_width = 12 + (extra_groups + 8)
 
-    # Define hatch patterns for each group
-    hatch_patterns = ['', '///', '+++', '---', '+', 'x', 'o', 'O', '.']  # You can define more or use fewer depending on your needs
-
     fig, ax = plt.subplots(figsize=(20, 7))  # You can adjust the figure size
 
+    # Loop through groups and draw bars
     for i, group in enumerate(groups):
         # Set hatch pattern based on the index of the group
         hatch = hatch_patterns[i % len(hatch_patterns)]  # Cycle through hatch patterns if there are more groups than patterns
@@ -391,8 +384,8 @@ def plot_bar_chart(regions, id_mapping, bar_values_array, se_to_region_group_dic
         # Get the standard errors specific to each region
         y_errors = [se_to_region_group_dict.get(region, {}).get(group, 0) for region in regions]
         ax.bar(bar_positions, bar_values_array[:, i], width, yerr=y_errors,
-            label=f"{group}, n = {n_to_group_dict.get(group)}", 
-            color=region_colors, hatch=hatch)
+               label=f"{group}, n = {n_to_group_dict.get(group)}", 
+               color=region_colors, hatch=hatch)
 
     # Annotate significant differences with asterisks and draw brackets
     for j, region in enumerate(regions):
@@ -416,7 +409,7 @@ def plot_bar_chart(regions, id_mapping, bar_values_array, se_to_region_group_dic
 
     # Add some text for labels, title, and custom x-axis tick labels, etc.
     ax.set_xlabel('Regions')
-    ax.set_ylabel('Densities')
+    ax.set_ylabel('Values')
     ax.set_title(plot_title)
     ax.set_xticks(x + (len(groups) - 1) * (width + group_space) / 2)  # Center on the regions
     ax.set_xticklabels([id_mapping.get(region) for region in regions], rotation=45, ha='right')
