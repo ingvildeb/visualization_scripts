@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 from scipy import stats
-from utils import prepare_hierarchy_info, prepare_groupwise_values_dict, perform_t_tests, get_descriptive_stats, values_to_array, create_groupwise_barplot
+from utils import prepare_hierarchy_info, prepare_groupwise_values_dict, perform_t_tests, get_descriptive_stats, create_groupwise_barplot
 
 """
 
@@ -70,7 +70,7 @@ grouping = {
 value_column = "cell_density"
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
-selected_hierarchy = "CustomLevel1_gm"
+selected_hierarchy = "CustomLevel3_gm"
 specified_parent = "Isocortex" # Set to False if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
@@ -92,16 +92,8 @@ apply_t_test = True
 hatch_patterns = ['', '///', '+++', '---', '+', 'x', 'o', 'O', '.']
 
 
-
-#### MAIN CODE, do not edit
-
-# Get the ordered list of unique groups based on the order of insertion
-groups = []
-for id, group in grouping.items():
-    if group not in groups:
-        groups.append(group)
-
-num_groups = len(groups)
+# MAIN CODE, do not edit
+groups = list(dict.fromkeys(grouping.values()))  # Get unique groups without duplicates
 
 if value_column == "cell_density":
     value_name = "Density"
@@ -122,28 +114,37 @@ save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specif
 # Prepare groupwise data
 id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
 
-all_individual_values  = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+# Collect all individual values and calculate averages and standard errors
+all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
 
-# Prepare average values and SE of values from the groupwise data
-avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict = get_descriptive_stats(all_individual_values)
+# Prepare average values and SE from all individual data
+avg_values_to_region_dict, se_to_region_group_dict, n_to_group_dict = get_descriptive_stats(all_individual_values)
 
-# Prepare a value array and corresponding lists of regions and colors for plotting
-values_array, regions, region_colors = values_to_array(all_individual_values, groups, avg_values_to_group_dict, color_mapping)
+# Run t-test if necessary
+if apply_t_test and len(groups) > 2:
+    print(f"Not able to apply t-test for n = {len(groups)} groups. Consider another statistical test.")
+    apply_t_test = False
 
-# Run t-test
-# Check if t test is possible
-if num_groups > 2:
-    if apply_t_test:
-        print(f"Not able to apply t-test for n = {num_groups} groups. Consider another statistical test.")
-        apply_t_test = False
+significant_results = {region: None for region in avg_values_to_region_dict.keys()}  # Initialize insignificant results
 
-# Conditional t-test based on apply_t_test flag
+
+# Perform t-test conditionally based on the apply_t_test flag
 if apply_t_test:
     significant_results = perform_t_tests(all_individual_values, groups[0], groups[1])
-else:
-    significant_results = {region: None for region in regions}
 
-# Plot bar chart
-create_groupwise_barplot(save_path, regions, id_mapping, values_array, se_to_region_group_dict, significant_results, 
-                         groups, n_to_group_dict, region_colors, plot_title, hatch_patterns, value_name)
+# Create a bar plot based on the average values and standard errors
+create_groupwise_barplot(
+    save_path, 
+    list(avg_values_to_region_dict.keys()),  # Regions as keys of avg_values_to_region_dict
+    {region: id_mapping[region] for region in avg_values_to_region_dict.keys()},  # ID mapping for regions
+    avg_values_to_region_dict,  # Use avg_values_to_region_dict instead of values_array
+    se_to_region_group_dict,  # Use se_to_region_group_dict directly
+    significant_results, 
+    groups, 
+    n_to_group_dict, 
+    [f"#{color_mapping.get(region)}" for region in avg_values_to_region_dict.keys()],  # colors
+    plot_title, 
+    hatch_patterns, 
+    value_name
+)
