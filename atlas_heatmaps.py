@@ -2,6 +2,7 @@ import brainglobe_heatmap as bgh
 import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
+import sys
 from utils import prepare_hierarchy_info, load_and_prepare_data, collect_values, average_value_dicts, create_child_to_parent_mapping
 
 
@@ -62,9 +63,12 @@ colormap = 'viridis'
 # Choose the number of atlas plates you want to plot. 
 n = 12  
 
-# Choose the orientation of your atlas plates. Options are frontal, sagittal and horizontal.
+# Choose the orientation of your atlas plates. Options are frontal, sagittal and horizontal. 
+
 orientation = "horizontal"
 
+# Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
+id_system = "KimLab16bit"
 
 ### MAIN CODE, do not edit
 # Path setup
@@ -82,7 +86,15 @@ value_column = "cell_density"
 all_values = []
 
 for file in files:
-    data_file = load_and_prepare_data(file, allen2intfile)
+
+    if id_system == "KimLab16bit":
+        data_file = load_and_prepare_data(file, allen2intfile)
+    elif id_system == "OriginalAllen":
+        data_file = load_and_prepare_data(file, allen2intfile, reverse=False)
+    else:
+        print("ID system not recognized. Must be KimLab16bit or OriginalAllen")
+        sys.exit(1)
+
     id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, "Allen_STlevel_5")
 

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pathlib import Path
 import json
+import sys
 from utils import prepare_hierarchy_info, create_child_to_parent_mapping, load_and_prepare_data
 from utils import collect_values, create_barplot, average_value_dicts
 
@@ -72,6 +73,8 @@ out_format = "tif"
 # Choose a title for your plot
 plot_title = "NeuN cell density"
 
+# Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
+id_system = "KimLab16bit"
 
 #### MAIN CODE, do not change
 
@@ -96,7 +99,15 @@ elif value_column == "ROI_Volume_mm_3":
 all_values = []
 
 for file in files:
-    data_file = load_and_prepare_data(file, allen2intfile)
+
+    if id_system == "KimLab16bit":
+        data_file = load_and_prepare_data(file, allen2intfile)
+    elif id_system == "OriginalAllen":
+        data_file = load_and_prepare_data(file, allen2intfile, reverse=False)
+    else:
+        print("ID system not recognized. Must be KimLab16bit or OriginalAllen")
+        sys.exit(1)
+    
     id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
 

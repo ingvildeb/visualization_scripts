@@ -3,6 +3,7 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 from scipy import stats
+import sys
 from utils import prepare_hierarchy_info, prepare_groupwise_values_dict, perform_t_tests, get_descriptive_stats, create_groupwise_barplot
 
 """
@@ -91,8 +92,11 @@ apply_t_test = True
 # Optional if you're not happy with the hatch patterns. Choose hatch patterns to cycle through in the bars for each group
 hatch_patterns = ['', '///', '+++', '---', '+', 'x', 'o', 'O', '.']
 
+# Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
+id_system = "KimLab16bit"
 
 # MAIN CODE, do not edit
+
 groups = list(dict.fromkeys(grouping.values()))  # Get unique groups without duplicates
 
 if value_column == "cell_density":
@@ -114,9 +118,20 @@ save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specif
 # Prepare groupwise data
 id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
 
+
 # Collect all individual values and calculate averages and standard errors
-all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
-                                                       specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+
+if id_system == "KimLab16bit":
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+elif id_system == "OriginalAllen":
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level, 
+                                                        reverse=False)
+else:
+    print("ID system not recognized. Must be KimLab16bit or OriginalAllen")
+    sys.exit(1)
+
 
 # Prepare average values and SE from all individual data
 avg_values_to_region_dict, se_to_region_group_dict, n_to_group_dict = get_descriptive_stats(all_individual_values)
@@ -127,7 +142,6 @@ if apply_t_test and len(groups) > 2:
     apply_t_test = False
 
 significant_results = {region: None for region in avg_values_to_region_dict.keys()}  # Initialize insignificant results
-
 
 # Perform t-test conditionally based on the apply_t_test flag
 if apply_t_test:

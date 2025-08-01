@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 import numpy as np
 import altair as alt
+import sys
 from utils import prepare_hierarchy_info, get_descriptive_stats, prepare_groupwise_values_dict
 
 """
@@ -89,6 +90,8 @@ plot_title = "Aldh cell densities"
 # Select a title for your x axis (typically what the groups are based on)
 x_axis_title = "Age"
 
+# Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
+id_system = "KimLab16bit"
 
 #### MAIN CODE
 groups = []
@@ -117,8 +120,19 @@ save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specif
 
 # Prepare groupwise data
 id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
-all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
-                                                       specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+
+# Collect all individual values and calculate averages and standard errors
+
+if id_system == "KimLab16bit":
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+elif id_system == "OriginalAllen":
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level, 
+                                                        reverse=False)
+else:
+    print("ID system not recognized. Must be KimLab16bit or OriginalAllen")
+    sys.exit(1)
 
 # Prepare average values and SE of values from the groupwise data
 avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict = get_descriptive_stats(all_individual_values)

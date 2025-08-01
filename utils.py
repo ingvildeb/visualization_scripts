@@ -99,11 +99,12 @@ def create_reverse_id_mapping(data_file, allen2intfile):
 
     return data_file_allen_ids
 
-def load_and_prepare_data(file_path, allen2intfile):
+def load_and_prepare_data(file_path, allen2intfile, reverse=True):
     # Load the data for the current subject
     data_file = pd.read_csv(file_path)
-    # Create reverse mapping from 16-bit IDs to original IDs
-    data_file = create_reverse_id_mapping(data_file, allen2intfile)
+    if reverse == True:
+        # Create reverse mapping from 16-bit IDs to original IDs
+        data_file = create_reverse_id_mapping(data_file, allen2intfile)
     return data_file
 
 def collect_values(data_file, values_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent=""):
@@ -180,13 +181,13 @@ def normalize_value_values(value_dict_list):
     return normalized_dicts_list
 
 def prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
-                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level):
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, reverse=True):
     # Prepare individual value data
     all_individual_values = {}  # Store individual values in a dictionary of dictionaries for each group
 
     for ID, file in IDs_to_files_dict.items():
         ID_group = grouping.get(ID)
-        data_file = load_and_prepare_data(file, allen2intfile)
+        data_file = load_and_prepare_data(file, allen2intfile, reverse)
         
 
         child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
