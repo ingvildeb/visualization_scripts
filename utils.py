@@ -160,11 +160,6 @@ def average_value_dicts(dict_list):
 
     return averages, standard_errors
 
-def add_bracket(ax, x_range, y_pos=1.05, line_width=2):
-    start, end = x_range
-    ax.annotate('', xy=(start, y_pos), xytext=(end, y_pos),
-                arrowprops=dict(arrowstyle='-', lw=line_width, color='black'),
-                annotation_clip=False, xycoords=('data', 'axes fraction'), textcoords=('data', 'axes fraction'))
 
 def normalize_value_values(value_dict_list):
     all_value_values = [value for d in value_dict_list for value in d.values()]
@@ -184,62 +179,32 @@ def normalize_value_values(value_dict_list):
     
     return normalized_dicts_list
 
-def create_heatmap(save_path, value_dicts, region_names, title='Value Heatmap', cmap='viridis'):
-    """
-    Create a heatmap of normalized value values from a list of dictionaries.
+def prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level):
+    # Prepare individual value data
+    all_individual_values = {}  # Store individual values in a dictionary of dictionaries for each group
 
-    Args:
-        save_path (Path): Where to save the heatmap image.
-        value_dicts (list): List of dictionaries containing region names and normalized values.
-        region_names (list): Corresponding region names for the y-axis labels.
-        title (str): Title of the heatmap.
-        cmap (str): Colormap for the heatmap.
-    """
-    # Extract unique regions
-    unique_regions = list(set(region_names))
-    num_cases = len(value_dicts)
+    for ID, file in IDs_to_files_dict.items():
+        ID_group = grouping.get(ID)
+        data_file = load_and_prepare_data(file, allen2intfile)
+        
 
-    # Create a 2D array to hold the value data
-    heatmap_data = np.zeros((len(unique_regions), num_cases))
-    
-    # Create a mapping of region names to index for the heatmap
-    region_index = {region: idx for idx, region in enumerate(unique_regions)}
+        child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
 
-    # Fill heatmap data based on region names and their normalized values
-    for j, d in enumerate(value_dicts):
-        for region, value in d.items():
-            if region in region_index:  # Check if the region is in the unique regions
-                heatmap_data[region_index[region], j] = value
+        # Collect the values
+        values_in_file = collect_values(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
 
-    # Create a heatmap using seaborn
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(heatmap_data, annot=True, cmap=cmap, xticklabels=range(1, num_cases + 1),
-                yticklabels=unique_regions, cbar_kws={'label': 'Normalized Value'})
+        for region_id, value in values_in_file.items():
+            if region_id not in all_individual_values:
+                all_individual_values[region_id] = {}
+            if ID_group not in all_individual_values[region_id]:
+                all_individual_values[region_id][ID_group] = []
+            all_individual_values[region_id][ID_group].append(value)
 
-    plt.title(title)
-    plt.xlabel('Case Number')
-    plt.ylabel('Regions')
+    return all_individual_values
 
-    plt.savefig(save_path)
-    plt.show()
-    plt.close()
-
-def calculate_averages_per_group(all_individual_values):
-    """
-    Calculate average values and standard errors from individual value data.
-
-    Parameters:
-    - all_individual_values: dict
-        A dictionary where keys are region IDs and values are dictionaries of group values.
-
-    Returns:
-    - avg_values_to_group_dict: dict
-        A dictionary with averaged value values for each group.
-    - se_to_region_group_dict: dict
-        A dictionary with standard error values for each region by group.
-    - n_to_group_dict: dict
-        A dictionary with count of values for each group.
-    """
+def get_descriptive_stats(all_individual_values):
+    """Calculate average values and standard errors from individual value data."""
     avg_values_to_group_dict = {}
     se_to_region_group_dict = {}
     n_to_group_dict = {}
@@ -262,23 +227,26 @@ def calculate_averages_per_group(all_individual_values):
 
     return avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict
 
+def values_to_array(all_individual_values, groups, avg_values_to_group_dict, color_mapping):
+    # Create a dictionary to store bar values per region
+    regions = list(all_individual_values.keys())
+    values = {region: [] for region in regions}  # Initialize bar values as an empty list for each region
+
+    for region in regions:
+        for group in groups:
+            avg_value = avg_values_to_group_dict.get(group, {}).get(region, 0)  # Default to 0 if no value
+            values[region].append(avg_value)
+
+    # Convert bar_values dictionary to an array for plotting
+    values_array = np.array([values[region] for region in regions])  # Create an array for plotting
+
+    # Create a color list based on region colors from color_mapping
+    region_colors = [f"#{color_mapping.get(region)}" for region in regions]
+
+    return values_array, regions, region_colors
+
 def perform_t_tests(all_individual_values, group1_name, group2_name):
-    """
-    Perform t-tests between two specified groups for all regions
-    and return a dictionary with significance levels.
-
-    Parameters:
-    - all_individual_values: dict
-        A dictionary where keys are region IDs and values are dictionaries of group values.
-    - group1_name: str
-        The name of the first group to compare.
-    - group2_name: str
-        The name of the second group to compare.
-
-    Returns: 
-    - significant_results: dict
-        A dictionary with region IDs as keys and significance levels as values.
-    """
+    """Perform t-tests between two specified groups for all regions and return a dictionary with significance levels."""
     significant_results = {}  # Dictionary to hold significance results
 
     for region in all_individual_values.keys():
@@ -298,15 +266,21 @@ def perform_t_tests(all_individual_values, group1_name, group2_name):
 
     return significant_results
 
-def create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, 
+def add_bracket(ax, x_range, y_pos=1.05, line_width=2):
+    start, end = x_range
+    ax.annotate('', xy=(start, y_pos), xytext=(end, y_pos),
+                arrowprops=dict(arrowstyle='-', lw=line_width, color='black'),
+                annotation_clip=False, xycoords=('data', 'axes fraction'), textcoords=('data', 'axes fraction'))
+
+def create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, value_name,
                    group_labels=False, yerr=None, selected_hierarchy="FullHierarchy", specified_parent=None, rotation=45, 
-                   ha='right', fontsize_labels=16, fontsize_titles=20, figsize=(35, 15), ylabel="Values"):
+                   ha='right', fontsize_labels=16, fontsize_titles=20, figsize=(35, 15)):
     
     # Plot the data
     fig, ax = plt.subplots(figsize=figsize)
 
     ax.bar(region_names, values, yerr=yerr, color=region_colors)
-    ax.set_ylabel(ylabel, fontsize=fontsize_labels)
+    ax.set_ylabel(value_name, fontsize=fontsize_labels)
     ax.set_title(plot_title, fontsize=fontsize_titles)
     ax.set_xticklabels(region_names, rotation=rotation, ha=ha, fontsize=fontsize_labels)
 
@@ -348,20 +322,8 @@ def create_barplot(save_path, region_names, values, region_colors, parent_labels
     plt.show()
 
 def create_groupwise_barplot(save_path, regions, id_mapping, bar_values_array, se_to_region_group_dict, significant_results, 
-                             groups, n_to_group_dict, region_colors, plot_title, hatch_patterns):
-    """
-    Plots a bar chart of value values across regions with error bars, for two or more groups.
-    
-    Parameters:
-    - regions: list of region names to be labeled on the x-axis.
-    - bar_values_array: 2D numpy array of bar values for each group.
-    - se_to_region_group_dict: dictionary containing standard errors for each region and group.
-    - significant_results: dictionary containing significance levels for each region.
-    - groups: list of group names.
-    - n_to_group_dict: dictionary containing counts for each group.
-    - region_colors: list of colors associated with each region.
-    - title: title of the plot.
-    """
+                             groups, n_to_group_dict, region_colors, plot_title, hatch_patterns, value_name):
+    """Plots a bar chart of value values across regions with error bars, for two or more groups."""
     num_groups = len(groups)
 
     # Make graph wider if there are more than two groups
@@ -409,7 +371,7 @@ def create_groupwise_barplot(save_path, regions, id_mapping, bar_values_array, s
 
     # Add some text for labels, title, and custom x-axis tick labels, etc.
     ax.set_xlabel('Regions')
-    ax.set_ylabel('Values')
+    ax.set_ylabel(value_name)
     ax.set_title(plot_title)
     ax.set_xticks(x + (len(groups) - 1) * (width + group_space) / 2)  # Center on the regions
     ax.set_xticklabels([id_mapping.get(region) for region in regions], rotation=45, ha='right')
