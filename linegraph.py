@@ -75,6 +75,12 @@ selected_hierarchy = "CustomLevel1_gm"
 specified_parent = "Olfactory areas" # Set to False if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "CustomLevel3_gm"
 
+# If you just want to plot one or a few regions, add them to a list here. 
+# These can be at any level of the hierarchy
+# Example: ["Frontal pole, cerebral cortex", "Striatum", "Thalamus"]
+# If you want to plot by the hierarchy, leave the list blank, i.e. []
+region_list = ["Frontal pole, cerebral cortex", "Striatum", "Thalamus"]
+
 # Choose a prefix that will be added to your saved file name
 out_filename_prefix = "Aldh_"
 
@@ -87,7 +93,7 @@ plot_title = "Aldh cell densities"
 # Select a title for your x axis
 x_axis_title = "Age"
 
-use_region_colors = False  # Set to True to use region-defined colors, or False for contrasting colors
+use_region_colors = True  # Set to True to use region-defined colors, or False for contrasting colors
 
 # Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
 id_system = "KimLab16bit"
@@ -120,12 +126,11 @@ save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specif
 id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
 
 if id_system == "KimLab16bit":
-    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
-                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, id_mapping, region_list, reverse=True)
 elif id_system == "OriginalAllen":
-    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
-                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level, 
-                                                        reverse=False)
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, id_mapping, region_list, reverse=False)
 else:
     print("ID system not recognized. Must be KimLab16bit or OriginalAllen")
     sys.exit(1)

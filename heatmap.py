@@ -77,6 +77,12 @@ selected_hierarchy = "CustomLevel1_gm"
 specified_parent = "Isocortex"  # Set to False if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
+# If you just want to plot one or a few regions, add them to a list here. 
+# These can be at any level of the hierarchy
+# Example: ["Frontal pole, cerebral cortex", "Striatum", "Thalamus"]
+# If you want to plot by the hierarchy, leave the list blank, i.e. []
+region_list = []
+
 # Choose a prefix that will be added to your saved file name
 out_filename_prefix = "Aldh_"
 
@@ -124,12 +130,11 @@ id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarch
 # Collect all individual values and calculate averages and standard errors
 
 if id_system == "KimLab16bit":
-    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
-                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, id_mapping, region_list, reverse=True)
 elif id_system == "OriginalAllen":
-    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
-                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level, 
-                                                        reverse=False)
+    all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, id_mapping, region_list, reverse=False)
 else:
     print("ID system not recognized. Must be KimLab16bit or OriginalAllen")
     sys.exit(1)

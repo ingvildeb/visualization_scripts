@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import sys
 from utils import prepare_hierarchy_info, create_child_to_parent_mapping, load_and_prepare_data
-from utils import collect_values, create_barplot, average_value_dicts
+from utils import collect_values_by_hierarchy, collect_values_directly, create_barplot, average_value_dicts
 
 """
 
@@ -76,6 +76,12 @@ plot_title = "NeuN cell density"
 # Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
 id_system = "KimLab16bit"
 
+# If you just want to plot one or a few regions, add them to a list here. 
+# These can be at any level of the hierarchy
+# Example: ["Frontal pole, cerebral cortex", "Striatum", "Thalamus"]
+# If you want to plot by the hierarchy, leave the list blank, i.e. []
+region_list = []
+
 #### MAIN CODE, do not change
 
 # Path setup
@@ -111,9 +117,12 @@ for file in files:
     id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
 
-    # Collect the values and corresponding region names, colors and parent regions
-    
-    values_in_file = collect_values(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
+    # Collect values in a dictionary with region IDs
+    if region_list:
+        values_in_file = collect_values_directly(data_file, value_column, region_list, id_mapping)
+    else:
+        values_in_file = collect_values_by_hierarchy(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
+
     all_values.append(values_in_file)
 
 # Get average values and SEM if n>1

@@ -107,7 +107,24 @@ def load_and_prepare_data(file_path, allen2intfile, reverse=True):
         data_file = create_reverse_id_mapping(data_file, allen2intfile)
     return data_file
 
-def collect_values(data_file, values_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent=""):
+
+def collect_values_directly(data_file, values_column, region_list, id_mapping):
+
+    all_values = {}
+
+    for region in region_list:
+        region_id = [key for key, val in id_mapping.items() if val == region]
+        region_id = region_id[0]
+        volume_value = data_file.loc[data_file["ROI_id"] == region_id, "ROI_Volume_mm_3"].values[0]
+
+        if volume_value != 0:
+            value = data_file.loc[data_file["ROI_id"] == region_id, values_column].values[0]
+            all_values[region_id] = value
+    
+    return all_values
+
+
+def collect_values_by_hierarchy(data_file, values_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent=""):
     all_values = {}
 
     if specified_parent:
@@ -181,7 +198,7 @@ def normalize_value_values(value_dict_list):
     return normalized_dicts_list
 
 def prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy, specified_parent,
-                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, reverse=True):
+                                  hierarchy_regions, custom_hier_path, parent_hierarchy_level, id_mapping, region_list = [], reverse=True):
     # Prepare individual value data
     all_individual_values = {}  # Store individual values in a dictionary of dictionaries for each group
 
@@ -189,11 +206,14 @@ def prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, all
         ID_group = grouping.get(ID)
         data_file = load_and_prepare_data(file, allen2intfile, reverse)
         
-
         child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
 
-        # Collect the values
-        values_in_file = collect_values(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
+        if region_list:
+            values_in_file = collect_values_directly(data_file, value_column, region_list, id_mapping)
+
+        else:
+            # Collect the values
+            values_in_file = collect_values_by_hierarchy(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
 
         for region_id, value in values_in_file.items():
             if region_id not in all_individual_values:
