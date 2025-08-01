@@ -2,7 +2,7 @@ import brainglobe_heatmap as bgh
 import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
-from utils import prepare_hierarchy_info, load_and_prepare_data, collect_densities, average_density_dicts, create_child_to_parent_mapping
+from utils import prepare_hierarchy_info, load_and_prepare_data, collect_values, average_value_dicts, create_child_to_parent_mapping
 
 
 """
@@ -65,6 +65,7 @@ n = 12
 # Choose the orientation of your atlas plates. Options are frontal, sagittal and horizontal.
 orientation = "horizontal"
 
+
 ### MAIN CODE, do not edit
 # Path setup
 base_path = Path(__file__).parent.resolve()
@@ -74,19 +75,23 @@ custom_hier_path = base_path / "files"
 out_path = base_path / "plots" / f"{out_filename_prefix}_{orientation}_atlasHeatmaps"
 out_path.mkdir(parents=True, exist_ok=True)
 
+# Set value column, only cell_density used for now
+value_column = "cell_density"
+
 # Prepare density data
-all_densities = []
+all_values = []
+
 for file in files:
     data_file = load_and_prepare_data(file, allen2intfile)
     id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, "Allen_STlevel_5")
 
     # Collect the densities
-    densities_in_file = collect_densities(data_file, hierarchy_regions, selected_hierarchy, child_to_parent_dict)
-    all_densities.append(densities_in_file)
+    values_in_file = collect_values(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict)
+    all_values.append(values_in_file)
 
-# Get average densities
-density_dict, _ = average_density_dicts(all_densities)
+# Get average values
+density_dict, _ = average_value_dicts(all_values)
 
 
 # Prepare a dictionary for plotting
@@ -96,8 +101,8 @@ for key, value in density_dict.items():
     if region_abb is not None: 
         values[region_abb] = value
 
-min_density = min(values.values())
-max_density = max(values.values())
+min_value = min(values.values())
+max_value = max(values.values())
 
 # Parameters
 if orientation == "frontal":
@@ -133,8 +138,8 @@ for i, position in enumerate(positions):
         values,
         position=position,
         orientation=orientation,
-        vmin=min_density,
-        vmax=max_density,
+        vmin=min_value,
+        vmax=max_value,
         cmap=colormap,
         format="2D"
     )
@@ -148,7 +153,7 @@ for i, position in enumerate(positions):
 
     # Color bar setup
     cbar_ax = fig.add_axes([0.9, 0.5, 0.02, 0.3])  # Adjust these values as necessary 
-    norm = plt.Normalize(vmin=min_density, vmax=max_density) 
+    norm = plt.Normalize(vmin=min_value, vmax=max_value) 
     cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=colormap), cax=cbar_ax)
 
     # Save the individual heatmap figure
