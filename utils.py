@@ -204,46 +204,31 @@ def prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, all
     return all_individual_values
 
 def get_descriptive_stats(all_individual_values):
-    """Calculate average values and standard errors from individual value data."""
+    """Calculates average values and standard errors for each group."""
     avg_values_to_group_dict = {}
     se_to_region_group_dict = {}
     n_to_group_dict = {}
-
-    for region_id, groups_data in all_individual_values.items():
-        for group, values in groups_data.items():
+    
+    for region, group_values in all_individual_values.items():
+        avg_values_to_group_dict[region] = {}
+        se_to_region_group_dict[region] = {}
+        
+        for group, values in group_values.items():
             n = len(values)
-
-            if n > 1:
-                # Wrap values in a list of dicts for averaging
-                value_dict, se_dict = average_value_dicts([{region_id: value} for value in values])
-                avg_values_to_group_dict.setdefault(group, {})[region_id] = value_dict[region_id]
-                se_to_region_group_dict.setdefault(region_id, {})[group] = se_dict[region_id]
+            if n > 0:
+                mean_value = np.mean(values)
+                se_value = np.std(values, ddof=1) / np.sqrt(n)  # Standard Error Calculation
+                
+                avg_values_to_group_dict[region][group] = mean_value
+                se_to_region_group_dict[region][group] = se_value
+                n_to_group_dict[group] = n
             else:
-                avg_values_to_group_dict.setdefault(group, {})[region_id] = values[0]  # No averaging possible
-                se_to_region_group_dict.setdefault(region_id, {})[group] = None
-
-            n_to_group_dict.setdefault(group, 0)
-            n_to_group_dict[group] = n
+                # Signal that no data is available
+                avg_values_to_group_dict[region][group] = np.nan  # Use NaN to indicate missing data
+                se_to_region_group_dict[region][group] = np.nan
 
     return avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict
 
-def values_to_array(all_individual_values, groups, avg_values_to_group_dict, color_mapping):
-    # Create a dictionary to store bar values per region
-    regions = list(all_individual_values.keys())
-    values = {region: [] for region in regions}  # Initialize bar values as an empty list for each region
-
-    for region in regions:
-        for group in groups:
-            avg_value = avg_values_to_group_dict.get(group, {}).get(region, 0)  # Default to 0 if no value
-            values[region].append(avg_value)
-
-    # Convert bar_values dictionary to an array for plotting
-    values_array = np.array([values[region] for region in regions])  # Create an array for plotting
-
-    # Create a color list based on region colors from color_mapping
-    region_colors = [f"#{color_mapping.get(region)}" for region in regions]
-
-    return values_array, regions, region_colors
 
 def perform_t_tests(all_individual_values, group1_name, group2_name):
     """Perform t-tests between two specified groups for all regions and return a dictionary with significance levels."""
@@ -321,43 +306,48 @@ def create_barplot(save_path, region_names, values, region_colors, parent_labels
     plt.savefig(save_path)
     plt.show()
 
-def create_groupwise_barplot(save_path, regions, id_mapping, bar_values_array, se_to_region_group_dict, significant_results, 
-                             groups, n_to_group_dict, region_colors, plot_title, hatch_patterns, value_name):
-    """Plots a bar chart of value values across regions with error bars, for two or more groups."""
+
+def create_groupwise_barplot(save_path, region_names, id_mapping, avg_values_to_region_dict,
+                              se_to_region_group_dict, significant_results, groups, n_to_group_dict,
+                              region_colors, plot_title, hatch_patterns, value_name):
+    """Plots a bar chart of average values across regions with error bars."""
+    
     num_groups = len(groups)
 
     # Make graph wider if there are more than two groups
     extra_groups = num_groups - 2
 
-    x = np.arange(len(regions))  # the label locations
-    width = 0.4 - (extra_groups * 0.15) # the width of the bars
-    group_space = 0.05  # Space between groups of bars
+    x = np.arange(len(region_names))  # The label locations
+    width = 0.4 - (extra_groups * 0.15)  # The width of the bars
+    group_space = 0.1  # Space between groups of bars
     fig_width = 12 + (extra_groups + 8)
 
-    fig, ax = plt.subplots(figsize=(20, 7))  # You can adjust the figure size
+    fig, ax = plt.subplots(figsize=(fig_width, 7))  # Adjust figure size as necessary
 
-    # Loop through groups and draw bars
+    # Loop through groups to draw bars
     for i, group in enumerate(groups):
-        # Set hatch pattern based on the index of the group
-        hatch = hatch_patterns[i % len(hatch_patterns)]  # Cycle through hatch patterns if there are more groups than patterns
+        # Adjust bar positions to ensure they are spaced correctly
+        bar_positions = x + i * (width + group_space)  # Shift bars over for each group
+        bar_values = [avg_values_to_region_dict.get(region, {}).get(group, 0) for region in region_names]
+        y_errors = [se_to_region_group_dict.get(region, {}).get(group, 0) for region in region_names]
+        
+        # Set hatch pattern for the bars
+        hatch = hatch_patterns[i % len(hatch_patterns)]  
 
-        # For each bar, set the color based on the region's associated color and add spacing
-        bar_positions = x + i * (width + group_space)  # Include space in the position calculation
-        # Get the standard errors specific to each region
-        y_errors = [se_to_region_group_dict.get(region, {}).get(group, 0) for region in regions]
-        ax.bar(bar_positions, bar_values_array[:, i], width, yerr=y_errors,
+        # Create bars
+        ax.bar(bar_positions, bar_values, width, yerr=y_errors,
                label=f"{group}, n = {n_to_group_dict.get(group)}", 
                color=region_colors, hatch=hatch)
 
     # Annotate significant differences with asterisks and draw brackets
-    for j, region in enumerate(regions):
+    for j, region in enumerate(region_names):
         if region in significant_results and significant_results[region] is not None:
             # Calculate the x-coordinate for the bracket
             start_x = j - (width + group_space) * 0.1  # Adjust for spacing
             end_x = j + (width + group_space)
 
             # Find the maximum error height for the current bars
-            max_bar_value = max(bar_values_array[j])
+            max_bar_value = max(avg_values_to_region_dict[region].get(group, 0) for group in groups)
             max_error = max([se_to_region_group_dict[region].get(g, 0) for g in groups]) if region in se_to_region_group_dict else 0
             y_bracket = max(max_bar_value + max_error, 0) + 0.1 * max_bar_value  # Position for the bracket
 
@@ -369,15 +359,18 @@ def create_groupwise_barplot(save_path, regions, id_mapping, bar_values_array, s
                         xy=((start_x + end_x) / 2, y_bracket + 0.05),  # Centered above the bracket
                         fontsize=12, ha='center')
 
-    # Add some text for labels, title, and custom x-axis tick labels, etc.
+    # Finalize the plot
     ax.set_xlabel('Regions')
     ax.set_ylabel(value_name)
     ax.set_title(plot_title)
-    ax.set_xticks(x + (len(groups) - 1) * (width + group_space) / 2)  # Center on the regions
-    ax.set_xticklabels([id_mapping.get(region) for region in regions], rotation=45, ha='right')
+    
+    # Center the x-ticks in relation to the bars
+    ax.set_xticks(x + (num_groups - 1) * (width + group_space) / 2)  
+    ax.set_xticklabels([id_mapping.get(region) for region in region_names], rotation=45, ha='right')
     ax.legend()
 
-    # Save the figure
-    plt.tight_layout()  # Adjust layout to make room for label rotation
+    # Save and show the plot
+    plt.tight_layout()
     plt.savefig(save_path)  # Save as per your specified path
     plt.show()  # Show the plot
+
