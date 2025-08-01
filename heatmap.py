@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import numpy as np
 import altair as alt
-from utils import prepare_hierarchy_info, get_descriptive_stats, prepare_groupwise_values_dict, values_to_array
+from utils import prepare_hierarchy_info, get_descriptive_stats, prepare_groupwise_values_dict
 
 """
 
@@ -34,7 +34,7 @@ parent_hierarchy_level. The different hierarchy levels available can be found as
 hierarchy level is Allen_STlevel_5, and this works well for most purposes. 
 
 Available grey matter parents at this level include:
-Isocortex, Olfactory areas, Hippocampal formation, Cortical subplate, Striatum, Pallidum, Thalamus, Hypothalamus, Midbrain, Pons, Medulla, Cerebellum
+Isocortex, Olfactory areas, Hippocampal formation, Cortical subplate, Striat, Pallidum, Thalamus, Hypothalamus, Midbrain, Pons, Medulla, Cerebellum
 
 Available white matter, ventricular and other parents at this level include:	
 cranial nerves, cerebellum related, fiber tracts, lateral forebrain bundle system, extrapyramidal fiber systems, medial forebrain bundle system,	
@@ -57,7 +57,6 @@ IDs_to_files_dict = {
 }
 
 # Assign each ID to a group. The order that you add the groups here will dictate the order of bars in your chart.
-# A good practice is to add the control group IDs first followed by experimental group; or lowest age first in case of age groups.
 grouping = {
     "IEB0079": "P04",
     "IEB0078": "P04",
@@ -74,7 +73,7 @@ value_column = "cell_density"
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
 selected_hierarchy = "CustomLevel1_gm"
-specified_parent = "Isocortex" # Set to False if you want to plot data from the selected hierarchy level across the brain
+specified_parent = "Isocortex"  # Set to False if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
 # Choose a prefix that will be added to your saved file name
@@ -91,8 +90,7 @@ plot_title = "Aldh cell densities"
 x_axis_title = "Age"
 
 
-#### MAIN CODE, do not change
-
+#### MAIN CODE
 groups = []
 for id, group in grouping.items(): 
     if group not in groups:
@@ -115,35 +113,41 @@ custom_hier_path = base_path / "files"
 out_path = base_path / "plots"
 out_path.mkdir(parents=True, exist_ok=True)
 save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}.{out_format}")
-n = len(IDs_to_files_dict)
+
 
 # Prepare groupwise data
 id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
-
-all_individual_values  = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+all_individual_values = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
                                                        specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
 
 # Prepare average values and SE of values from the groupwise data
 avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict = get_descriptive_stats(all_individual_values)
 
-# Prepare a value array and corresponding lists of regions and colors for plotting
-values_array, regions, region_colors = values_to_array(all_individual_values, groups, avg_values_to_group_dict, color_mapping)
+# Data preparation for Altair Directly from avg_values_to_group_dict
+# Convert avg_values_to_group_dict into a pandas DataFrame suitable for plotting
+region_names = list(avg_values_to_group_dict.keys())
+data = []
 
-region_names = [id_mapping.get(region_id) for region_id in regions]
+for region in region_names:
+    for group in groups:
+        avg_value = avg_values_to_group_dict.get(region, {}).get(group, 0)
+        se_value = se_to_region_group_dict.get(region, {}).get(group, 0)
+        data.append({
+            'Region': id_mapping.get(region, region),  # Mapping region_id to a readable name
+            'Group': group,
+            'Average': avg_value,
+            'SE': se_value
+        })
 
-# Convert your heatmap data to a pandas DataFrame
-df = pd.DataFrame(values_array, columns=groups, index=region_names)  # Use names as index
-
-# Reformat the DataFrame to long format for Altair
-altair_df = df.reset_index().melt(id_vars='index', var_name=x_axis_title, value_name=value_name)
-altair_df.columns = ['Region', x_axis_title, value_name]
+# Create DataFrame for Altair
+altair_df = pd.DataFrame(data)
 
 # Create the heatmap
 heatmap = alt.Chart(altair_df).mark_rect().encode(
-    x=alt.X(f'{x_axis_title}:O', title=x_axis_title, sort=groups),
+    x=alt.X('Group:O', title=x_axis_title, sort=groups),
     y=alt.Y('Region:O', sort=region_names, title='Regions'),
-    color=f'{value_name}:Q',
-    tooltip=['Region', x_axis_title, value_name]
+    color='Average:Q',
+    tooltip=['Region', 'Group', 'Average', 'SE']  # Include SE in tooltip if desired
 ).properties(
     title=plot_title
 ).configure_axis(
