@@ -85,6 +85,13 @@ out_path.mkdir(parents=True, exist_ok=True)
 save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_{value_column}.{out_format}")
 n = len(files)
 
+if value_column == "cell_density":
+    value_name = "Density"
+elif value_column == "cell_counted":
+    value_name = "Cell number"
+elif value_column == "ROI_Volume_mm_3":
+    value_name = "Region volume"
+
 # Prepare value data
 all_values = []
 
@@ -134,6 +141,8 @@ for i in range(len(parent_labels) - 1):
         parent_labels[i] = parent_labels[i + 1]
 
 if n > 1:
-    create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, yerr=standard_errors, selected_hierarchy=selected_hierarchy, specified_parent=specified_parent)
+    create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, value_name,
+                   yerr=standard_errors, selected_hierarchy=selected_hierarchy, specified_parent=specified_parent)
 else:
-    create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, selected_hierarchy=selected_hierarchy, specified_parent=specified_parent)
+    create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, value_name,
+                   selected_hierarchy=selected_hierarchy, specified_parent=specified_parent)
