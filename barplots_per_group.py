@@ -3,8 +3,7 @@ import pandas as pd
 from pathlib import Path
 import numpy as np
 from scipy import stats
-from utils import prepare_hierarchy_info, create_child_to_parent_mapping, load_and_prepare_data
-from utils import collect_values, perform_t_tests, calculate_averages_per_group, create_groupwise_barplot
+from utils import prepare_hierarchy_info, prepare_groupwise_values_dict, perform_t_tests, get_descriptive_stats, values_to_array, create_groupwise_barplot
 
 """
 
@@ -68,15 +67,13 @@ grouping = {
 } 
 
 # Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_value" for values and "ROI_Volume_mm_3" for region volumes
-value_column = "ROI_Volume_mm_3"
+value_column = "cell_density"
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
 selected_hierarchy = "CustomLevel1_gm"
 specified_parent = "Isocortex" # Set to False if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
-# Set this to True or False as needed. Will only work with exactly two groups.
-apply_t_test = True  
 
 # Choose a prefix that will be added to your saved file name
 out_filename_prefix = "NeuN_18mo_C57_vs_14mo_TgSwDI--"
@@ -87,6 +84,9 @@ out_format = "tif"
 
 # Choose a title for your plot
 plot_title = "NeuN cell density"
+
+# Set this to True or False as needed. Will only work with exactly two groups.
+apply_t_test = True  
 
 # Optional if you're not happy with the hatch patterns. Choose hatch patterns to cycle through in the bars for each group
 hatch_patterns = ['', '///', '+++', '---', '+', 'x', 'o', 'O', '.']
@@ -103,6 +103,13 @@ for id, group in grouping.items():
 
 num_groups = len(groups)
 
+if value_column == "cell_density":
+    value_name = "Density"
+elif value_column == "cell_counted":
+    value_name = "Cell number"
+elif value_column == "ROI_Volume_mm_3":
+    value_name = "Region volume"
+
 # Path setup
 base_path = Path(__file__).parent.resolve()
 allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
@@ -112,49 +119,24 @@ out_path = base_path / "plots"
 out_path.mkdir(parents=True, exist_ok=True)
 save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_.{out_format}")
 
+# Prepare groupwise data
+id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
+
+all_individual_values  = prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, allen2intfile, selected_hierarchy,
+                                                       specified_parent, hierarchy_regions, custom_hier_path, parent_hierarchy_level)
+
+# Prepare average values and SE of values from the groupwise data
+avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict = get_descriptive_stats(all_individual_values)
+
+# Prepare a value array and corresponding lists of regions and colors for plotting
+values_array, regions, region_colors = values_to_array(all_individual_values, groups, avg_values_to_group_dict, color_mapping)
+
+# Run t-test
 # Check if t test is possible
 if num_groups > 2:
     if apply_t_test:
         print(f"Not able to apply t-test for n = {num_groups} groups. Consider another statistical test.")
         apply_t_test = False
-
-# Prepare individual value data
-all_individual_values = {}  # Store individual values in a dictionary of dictionaries for each group
-
-for ID, file in IDs_to_files_dict.items():
-    ID_group = grouping.get(ID)
-    data_file = load_and_prepare_data(file, allen2intfile)
-    id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
-
-    child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
-
-    # Collect the values
-    values_in_file = collect_values(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent)
-
-    for region_id, value in values_in_file.items():
-        if region_id not in all_individual_values:
-            all_individual_values[region_id] = {}
-        if ID_group not in all_individual_values[region_id]:
-            all_individual_values[region_id][ID_group] = []
-        all_individual_values[region_id][ID_group].append(value)
-
-# Prepare average values and SE calculation from all_individual_values
-avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict = calculate_averages_per_group(all_individual_values)
-
-# Create a dictionary to store bar values per region
-regions = list(all_individual_values.keys())
-bar_values = {region: [] for region in regions}  # Initialize bar values as an empty list for each region
-
-for region in regions:
-    for group in groups:
-        avg_value = avg_values_to_group_dict.get(group, {}).get(region, 0)  # Default to 0 if no value
-        bar_values[region].append(avg_value)
-
-# Convert bar_values dictionary to an array for plotting
-bar_values_array = np.array([bar_values[region] for region in regions])  # Create an array for plotting
-
-# Create a color list based on region colors from color_mapping
-region_colors = [f"#{color_mapping.get(region)}" for region in regions]
 
 # Conditional t-test based on apply_t_test flag
 if apply_t_test:
@@ -163,5 +145,5 @@ else:
     significant_results = {region: None for region in regions}
 
 # Plot bar chart
-create_groupwise_barplot(save_path, regions, id_mapping, bar_values_array, se_to_region_group_dict, significant_results, 
-                         groups, n_to_group_dict, region_colors, plot_title, hatch_patterns)
+create_groupwise_barplot(save_path, regions, id_mapping, values_array, se_to_region_group_dict, significant_results, 
+                         groups, n_to_group_dict, region_colors, plot_title, hatch_patterns, value_name)
