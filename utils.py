@@ -5,6 +5,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
+import nibabel as nib
 
 def get_mappings(data, key_property, value_property, default_value=None):
     mapping = {}
@@ -86,25 +87,27 @@ def create_child_to_parent_mapping(custom_hier_path, hierarchy_name):
 
     return child_to_parent_dict
 
-def create_reverse_id_mapping(data_file, allen2intfile):
+def create_reverse_id_mapping(allen2intfile):
     """Create a reverse mapping from 16-bit IDs (used by Kim lab) to original IDs."""
     # Create reverse mapping from 16-bit ids to original ids
     allen2int = pd.read_excel(allen2intfile)
     allen2int_dict = dict(zip(allen2int.iloc[:, 0], allen2int.iloc[:, 1]))
-    int2allen_dict = {v: k for k, v in allen2int_dict.items()}
+    reverse_id_mapping = {v: k for k, v in allen2int_dict.items()}
 
-    # Create a copy of the data_file with original IDs
-    data_file_allen_ids = data_file.copy()
-    data_file_allen_ids['ROI_id'] = data_file['ROI_id'].map(int2allen_dict).fillna(data_file['ROI_id'])
-
-    return data_file_allen_ids
+    return reverse_id_mapping
 
 def load_and_prepare_data(file_path, allen2intfile, reverse=True):
     # Load the data for the current subject
     data_file = pd.read_csv(file_path)
+
     if reverse == True:
         # Create reverse mapping from 16-bit IDs to original IDs
-        data_file = create_reverse_id_mapping(data_file, allen2intfile)
+        reverse_id_mapping = create_reverse_id_mapping(allen2intfile)
+        
+        # Create a copy of the data_file with original IDs
+        #data_file_allen_ids = data_file.copy()
+        data_file['ROI_id'] = data_file['ROI_id'].map(reverse_id_mapping).fillna(data_file['ROI_id'])
+
     return data_file
 
 
