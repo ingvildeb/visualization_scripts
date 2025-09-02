@@ -3,6 +3,8 @@
 
  This repository contains various scripts for visualizing brain-wide expression data, e.g. numbers or densities of neurons. In principle, the scripts can be used to plot any metric across the brain, so long as the data is provided in the correct format. The scripts have been tested mainly with data mapped to CCFv3-2017, but may also work for data mapped to any version of the Allen CCF. 
 
+ The repository is under development and any feedback is very welcome. I aim for this to be a useful resource for plotting brain-wide, atlas mapped data.
+
 ## Available plot types
 - Bar graphs
 - Line graphs
