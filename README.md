@@ -6,10 +6,15 @@
  The repository is under development and any feedback is very welcome. I aim for this to be a useful resource for plotting brain-wide, atlas mapped data.
 
 ## Available plot types
-- Bar graphs
+All the plots can be made at different levels of the atlas hierarchy, or regions within a parent region can be selectively plotted. 
+- Bar graphs (for single or multiple samples, and for one or more groups)
 - Line graphs
 - Heatmaps
 - Brainglobe atlas heatmaps
+
+## Other forms of visualization
+- Create a flythrough video from a .nii file
+- Create 
 
 ## Format requirements:
 It is essential that the data are formatted correctly for these scripts to work. See **files > counted_3d_cells.csv** for an example input file.
