@@ -14,7 +14,6 @@ All the plots can be made at different levels of the atlas hierarchy, or regions
 
 ## Other forms of visualization
 - Create a flythrough video from a .nii file
-- Create 
 
 ## Format requirements:
 It is essential that the data are formatted correctly for these scripts to work. See **files > counted_3d_cells.csv** for an example input file.
