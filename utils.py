@@ -7,6 +7,7 @@ import seaborn as sns
 from scipy import stats
 import nibabel as nib
 import cv2
+from PIL import Image
 
 def get_mappings(data, key_property, value_property, default_value=None):
     mapping = {}
@@ -483,3 +484,22 @@ def create_grayscale_mapping(roi_id, atlas_plate, color_mapping):
     })
 
     return grayscale_mapping
+
+def normalize_image(image_path, min_val=0, max_val=99.5):
+    """Normalize a single image using given min/max values."""
+    image_pil = Image.open(image_path)
+
+    # Convert image to NumPy array for manipulation
+    image_array = np.array(image_pil)
+
+    # Define clipping thresholds
+    lower_threshold = np.percentile(image_array, min_val)
+    upper_threshold = np.percentile(image_array, max_val)
+
+    # Clip the image pixel values
+    clipped_image = np.clip(image_array, lower_threshold, upper_threshold)
+
+    # Normalize to range 0-255 and convert to uint8
+    normalized_image = cv2.normalize(clipped_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+    return normalized_image
