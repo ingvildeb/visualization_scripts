@@ -45,9 +45,6 @@ Heatmaps can be a good way to plot relative differences between many groups acro
 
 *Example horizontal atlas plate heatmap at CustomLevel1*
 
-## Other forms of visualization
-- Create a flythrough video from a .nii file
-
 ## Getting started
 It is advisable to set up a specific environment in which to run the scripts from this repository. You can install all required packages from the requirements.txt file provided in this repository.
 
