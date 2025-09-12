@@ -48,7 +48,7 @@ Heatmaps can be a good way to plot relative differences between many groups acro
 ## Getting started
 It is advisable to set up a specific environment in which to run the scripts from this repository. You can install all required packages from the requirements.txt file provided in this repository.
 
-## Format requirements:
+## Format requirements
 It is essential that your data are formatted correctly for these scripts to work. See **files > counted_3d_cells.csv** for an example input file.
  - Data should be provided in .csv format, with each region of the brain as a row and the data to be plotted in column(s).
  - The regions of the brain need to be identified by their atlas ID in a column named "ROI_id"
@@ -56,7 +56,7 @@ It is essential that your data are formatted correctly for these scripts to work
  - If you want to plot data from different animals and groups, each subject should be represented in a separate sheet
  - The columns for the values to be plotted can be called anything (the user will specify the column name when using the different scripts), but should be named consistently across sheets for different animals in order to use scripts that group and average data
 
-## Future plans:
+## Future plans
 - Support for plotting data mapped to the WHS rat brain atlas
 - Automatic conversion of data generated via the QUINT workflow to the format required for these scripts
    
