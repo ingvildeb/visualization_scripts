@@ -84,14 +84,17 @@ parent_hierarchy_level = "Allen_STlevel_5"
 region_list = []
 
 # Choose a prefix that will be added to your saved file name
-out_filename_prefix = "Aldh_"
+out_filename_prefix = "Example_heatmap"
+
+# Set the path to where you want your plots to be saved
+out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
 out_format = "png"
 
 # Choose a title for your plot
-plot_title = "Aldh cell densities"
+plot_title = "Cell densities"
 
 # Select a title for your x axis (typically what the groups are based on)
 x_axis_title = "Age"
@@ -119,10 +122,12 @@ base_path = Path(__file__).parent.resolve()
 allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = base_path / "files" / "CCF_v3_ontology.json"
 custom_hier_path = base_path / "files"
-out_path = base_path / "plots"
 out_path.mkdir(parents=True, exist_ok=True)
-save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}.{out_format}")
 
+if specified_parent:
+    save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_{value_column}.{out_format}")
+else:
+    save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}.{out_format}")
 
 # Prepare groupwise data
 id_mapping, color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 import sys
-from utils import prepare_hierarchy_info, load_and_prepare_data, collect_values, average_value_dicts, create_child_to_parent_mapping
+from utils import prepare_hierarchy_info, load_and_prepare_data, average_value_dicts, create_child_to_parent_mapping, collect_values_by_hierarchy
 
 
 """
@@ -47,7 +47,10 @@ files = [
 ]
 
 # Choose a prefix that will be added to your saved file name
-out_filename_prefix = "Aldh_P14_" 
+out_filename_prefix = "Example_atlas_heatmap" 
+
+# Set the path to where you want your plots to be saved
+out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
@@ -61,7 +64,7 @@ selected_hierarchy = "CustomLevel1_gm"
 colormap = 'viridis' 
 
 # Choose the number of atlas plates you want to plot. 
-n = 12  
+n = 6  
 
 # Choose the orientation of your atlas plates. Options are frontal, sagittal and horizontal. 
 
@@ -76,7 +79,7 @@ base_path = Path(__file__).parent.resolve()
 allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = base_path / "files" / "CCF_v3_ontology.json"
 custom_hier_path = base_path / "files"
-out_path = base_path / "plots" / f"{out_filename_prefix}_{orientation}_atlasHeatmaps"
+out_path = out_path / f"{out_filename_prefix}_{orientation}_atlasHeatmaps"
 out_path.mkdir(parents=True, exist_ok=True)
 
 # Set value column, only cell_density used for now
@@ -99,7 +102,7 @@ for file in files:
     child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, "Allen_STlevel_5")
 
     # Collect the densities
-    values_in_file = collect_values(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict)
+    values_in_file = collect_values_by_hierarchy(data_file, value_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict)
     all_values.append(values_in_file)
 
 # Get average values

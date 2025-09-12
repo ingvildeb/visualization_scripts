@@ -47,31 +47,30 @@ excel files to figure out which parents are available at which levels.
 
 #### USER INPUTS
 files = [
-    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0290_counted_3d_cells.csv"),
-    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0291_counted_3d_cells.csv"),
-    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0292_counted_3d_cells.csv"),
-    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0293_counted_3d_cells.csv"),
-    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0294_counted_3d_cells.csv"),
+    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0290_counted_3d_cells.csv")
     # Add more subject files as needed
 ]
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
-selected_hierarchy = "CustomLevel1_gm"
-specified_parent = "Isocortex" # Set to False if you want to plot data from the selected hierarchy level across the brain
+selected_hierarchy = "CustomLevel2_gm"
+specified_parent = None #"Isocortex" # Set to None if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
 # Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_value" for values and "ROI_Volume_mm_3" for region volumes
 value_column = "cell_counted"
 
 # Choose a prefix that will be added to your saved file name
-out_filename_prefix = "NeuN_18mo_C57_vs_14mo_TgSwDI--"
+out_filename_prefix = "Example_barplot_singleSamples"
+
+# Set the path to where you want your plots to be saved
+out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
 out_format = "tif"
 
 # Choose a title for your plot
-plot_title = "NeuN cell density"
+plot_title = "Cell density"
 
 # Specify whether your data files uses the original Allen ID system ("OriginalAllen") or 16-bit IDs as used by the Kim lab (KimLab16bit)
 id_system = "KimLab16bit"
@@ -89,9 +88,13 @@ base_path = Path(__file__).parent.resolve()
 allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = base_path / "files" / "CCF_v3_ontology.json"
 custom_hier_path = base_path / "files"
-out_path = base_path / "plots"
 out_path.mkdir(parents=True, exist_ok=True)
-save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_{value_column}.{out_format}")
+
+if specified_parent:
+    save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_{value_column}.{out_format}")
+else:
+    save_path = Path(out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}.{out_format}")
+
 n = len(files)
 
 if value_column == "cell_density":
