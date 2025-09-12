@@ -14,7 +14,7 @@ Bar graphs are useful for an intuitive interpretation of region-wise metrics in 
 
 <img src="example_graphs/Example_barplot_singleSamples_CustomLevel2_gm_cell_counted.png" alt="Screenshot" width="1200"/>
 
-*Example graph showing all brain regions at CustomLevel2*
+*Example graph showing all brain regions at CustomLevel2. For all levels more fine grained than CustomLevel4, x axis labels will be grouped.*
 
 <img src="example_graphs/Example_barplot_multiSamples_CustomLevel2_gm_Isocortex_cell_counted.png" alt="Screenshot" width="1200"/>
 
