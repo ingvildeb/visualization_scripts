@@ -5,6 +5,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
+import nibabel as nib
+import cv2
+from PIL import Image
 
 def get_mappings(data, key_property, value_property, default_value=None):
     mapping = {}
@@ -86,25 +89,27 @@ def create_child_to_parent_mapping(custom_hier_path, hierarchy_name):
 
     return child_to_parent_dict
 
-def create_reverse_id_mapping(data_file, allen2intfile):
+def create_reverse_id_mapping(allen2intfile):
     """Create a reverse mapping from 16-bit IDs (used by Kim lab) to original IDs."""
     # Create reverse mapping from 16-bit ids to original ids
     allen2int = pd.read_excel(allen2intfile)
     allen2int_dict = dict(zip(allen2int.iloc[:, 0], allen2int.iloc[:, 1]))
-    int2allen_dict = {v: k for k, v in allen2int_dict.items()}
+    reverse_id_mapping = {v: k for k, v in allen2int_dict.items()}
 
-    # Create a copy of the data_file with original IDs
-    data_file_allen_ids = data_file.copy()
-    data_file_allen_ids['ROI_id'] = data_file['ROI_id'].map(int2allen_dict).fillna(data_file['ROI_id'])
-
-    return data_file_allen_ids
+    return reverse_id_mapping
 
 def load_and_prepare_data(file_path, allen2intfile, reverse=True):
     # Load the data for the current subject
     data_file = pd.read_csv(file_path)
+
     if reverse == True:
         # Create reverse mapping from 16-bit IDs to original IDs
-        data_file = create_reverse_id_mapping(data_file, allen2intfile)
+        reverse_id_mapping = create_reverse_id_mapping(allen2intfile)
+        
+        # Create a copy of the data_file with original IDs
+        #data_file_allen_ids = data_file.copy()
+        data_file['ROI_id'] = data_file['ROI_id'].map(reverse_id_mapping).fillna(data_file['ROI_id'])
+
     return data_file
 
 
@@ -395,3 +400,106 @@ def create_groupwise_barplot(save_path, region_names, id_mapping, avg_values_to_
     plt.savefig(save_path)  # Save as per your specified path
     plt.show()  # Show the plot
 
+
+
+
+def hex_to_rgb(hex_color):
+    """Convert a hex color string to an RGB tuple."""
+    hex_color = str(hex_color)
+    hex_color = hex_color.lstrip('#')  # Remove '#' if present
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return r, g, b
+
+def atlas_to_svg(atlas_plate, color_mapping, filename):
+    height, width = atlas_plate.shape[:2]
+
+    masks = {}
+    
+    # Create a binary mask for each ID
+    for id_value in np.unique(atlas_plate):
+        if id_value in color_mapping:  # Only consider IDs that have color mapping
+            mask = (atlas_plate == id_value).astype(np.uint8)  # Create binary mask
+            masks[id_value] = mask
+
+    with open(filename, 'w') as svg_file:
+        svg_file.write(f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+  <g>\n""")
+
+        for id_value, mask in masks.items():
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            # Get the fill color from the color mapping
+            hex_color = color_mapping.get(id_value, '#000000')
+            r, g, b = hex_to_rgb(hex_color)
+
+            for contour in contours:
+                # Prepare SVG path data
+                path_string = 'M '  # Initialize the path string
+                for point in contour[:, 0]:  # Contour is an array of points (x, y)
+                    x, y = point
+                    path_string += f"{x} {y} "  # Keep y as is
+                path_string += 'Z'  # Close the path
+                
+                # Write the path to the SVG file with black outline
+                svg_file.write(f'    <path d="{path_string}" fill="rgb({r},{g},{b})" stroke="black" stroke-width="1" />\n')
+
+        svg_file.write("  </g>\n</svg>")
+
+def convert_colors(orig_image, color_mapping):
+    height, width = orig_image.shape
+    color_image = np.zeros((height, width, 3), dtype=np.uint8)  
+
+    for i in range(height):
+        for j in range(width):
+            id_value = orig_image[i, j]
+
+            # Get the color corresponding to the ID from the mapping
+            hex_color = color_mapping.get(id_value, '#000000')  # Default to black if ID not found
+            r, g, b = hex_to_rgb(hex_color)
+
+            # Assign the RGB color to the color image
+            color_image[i, j] = [r, g, b]
+    return color_image
+
+def create_grayscale_mapping(roi_id, atlas_plate, color_mapping):
+    # Find all unique IDs in the atlas, excluding ROI ID and background ID (0)
+    unique_ids = np.unique(atlas_plate)
+    ids_to_convert = unique_ids[(unique_ids != roi_id) & (unique_ids != 0)]  # Use boolean indexing
+
+    # Create a mapping for unique to lighter grayscale hex values
+    num_ids = len(ids_to_convert)
+
+    # Assign lighter grayscale values for each ID
+    light_gray_shades = np.linspace(110, 230, num_ids, dtype=np.uint8)
+
+    # Create a mapping dictionary with hex values for correspondingly unique IDs
+    grayscale_mapping = {roi_id: color_mapping.get(roi_id)}  # Start with the ROI ID mapping
+
+    # Using dictionary comprehension to assign the grayscale values to each unique ID
+    grayscale_mapping.update({
+        int(id_value): f"#{gray_value:02x}{gray_value:02x}{gray_value:02x}" 
+        for id_value, gray_value in zip(ids_to_convert, light_gray_shades)
+    })
+
+    return grayscale_mapping
+
+def normalize_image(image_path, min_val=0, max_val=99.5):
+    """Normalize a single image using given min/max values."""
+    image_pil = Image.open(image_path)
+
+    # Convert image to NumPy array for manipulation
+    image_array = np.array(image_pil)
+
+    # Define clipping thresholds
+    lower_threshold = np.percentile(image_array, min_val)
+    upper_threshold = np.percentile(image_array, max_val)
+
+    # Clip the image pixel values
+    clipped_image = np.clip(image_array, lower_threshold, upper_threshold)
+
+    # Normalize to range 0-255 and convert to uint8
+    normalized_image = cv2.normalize(clipped_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+
+    return normalized_image
