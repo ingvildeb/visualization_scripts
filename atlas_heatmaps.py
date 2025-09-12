@@ -41,20 +41,20 @@ Federico Claudi, Adam Tyson, Luigi Petrucco, Mathieu Bourdenx, Carlo Castoldi, R
 
 # Define the files to be used. Heatmaps will represent an average of cell densities across these files.
 files = [
-    Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0039_counted_3d_cells.csv"), 
-    Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0040_counted_3d_cells.csv"), 
-    Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\LJS011_counted_3d_cells.csv"),
+    Path(r"example\path\your_file_1.csv"), 
+    Path(r"example\path\your_file_2.csv"),  
+    Path(r"example\path\your_file_3.csv")
 ]
 
 # Choose a prefix that will be added to your saved file name
 out_filename_prefix = "Example_atlas_heatmap" 
 
 # Set the path to where you want your plots to be saved
-out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
+out_path = Path(r"example\path\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
-out_format = "svg" 
+out_format = "png" 
 
 # Choose a hierarchy level to display brain regions at.
 selected_hierarchy = "CustomLevel1_gm" 

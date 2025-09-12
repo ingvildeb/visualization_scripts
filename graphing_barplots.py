@@ -47,27 +47,28 @@ excel files to figure out which parents are available at which levels.
 
 #### USER INPUTS
 files = [
-    Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0290_counted_3d_cells.csv")
-    # Add more subject files as needed
+    Path(r"example\path\your_file_1.csv"), 
+    Path(r"example\path\your_file_2.csv"),  
+    Path(r"example\path\your_file_3.csv")
 ]
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
 selected_hierarchy = "CustomLevel2_gm"
-specified_parent = None #"Isocortex" # Set to None if you want to plot data from the selected hierarchy level across the brain
+specified_parent = "Isocortex" # Set to None if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
 # Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_value" for values and "ROI_Volume_mm_3" for region volumes
 value_column = "cell_counted"
 
 # Choose a prefix that will be added to your saved file name
-out_filename_prefix = "Example_barplot_singleSamples"
+out_filename_prefix = "Example_barplot_multiSamples"
 
 # Set the path to where you want your plots to be saved
 out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
-out_format = "tif"
+out_format = "png"
 
 # Choose a title for your plot
 plot_title = "Cell density"

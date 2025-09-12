@@ -47,24 +47,16 @@ excel files to figure out which parents are available at which levels.
 
 #### USER INPUTS
 IDs_to_files_dict = {
-    "IEB0039": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0039_counted_3d_cells.csv"), 
-    "IEB0040": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0040_counted_3d_cells.csv"), 
-    "IEB0066": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0066_counted_3d_cells.csv"), 
-    "IEB0068": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0068_counted_3d_cells.csv"),
-    "IEB0079": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0079_counted_3d_cells.csv"),
-    "LJS011": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\LJS011_counted_3d_cells.csv"),
-    "IEB0078": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0078.FIRSTIMAGE_counted_3d_cells.csv"),
+    "sub1": Path(r"example\path\your_file_1.csv"), 
+    "sub2": Path(r"example\path\your_file_2.csv"), 
+    "sub3": Path(r"example\path\your_file_3.csv")
 }
 
 # Assign each ID to a group. The order that you add the groups here will dictate the order of bars in your chart.
 grouping = {
-    "IEB0079": "P04",
-    "IEB0078": "P04",
-    "IEB0066": "P08", 
-    "IEB0068": "P08",
-    "IEB0039": "P14", 
-    "IEB0040": "P14", 
-    "LJS011": "P14",
+    "sub1": "Group1",
+    "sub2": "Group1",
+    "sub3": "Group2"
 } 
 
 # Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_value" for values and "ROI_Volume_mm_3" for region volumes
@@ -85,7 +77,7 @@ region_list = [] # Example list: ["Frontal pole, cerebral cortex", "Striatum", "
 out_filename_prefix = "Example_linegraph"
 
 # Set the path to where you want your plots to be saved
-out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
+out_path = Path(r"example\path\example_graphs")
 
 # Choose the output format
 out_format = "png"

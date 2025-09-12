@@ -47,34 +47,26 @@ excel files to figure out which parents are available at which levels.
 
 #### USER INPUTS
 IDs_to_files_dict = {
-    "CS0290": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0290_counted_3d_cells.csv"), 
-    "CS0291": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0291_counted_3d_cells.csv"), 
-    "CS0292": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0292_counted_3d_cells.csv"), 
-    "CS0293": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0293_counted_3d_cells.csv"),
-    "CS0294": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0294_counted_3d_cells.csv"),
-    "CS0295": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0295_counted_3d_cells.csv"),
-    "CS0295": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0295_counted_3d_cells.csv"),
-    "CS0295": Path(r"Z:\Labmembers\Ingvild\RM1\example_analysis\CS0295_counted_3d_cells.csv")
+    "sub1": Path(r"example\path\your_file_1.csv"), 
+    "sub2": Path(r"example\path\your_file_2.csv"), 
+    "sub3": Path(r"example\path\your_file_3.csv")
 }
 
 
 # Assign each ID to a group. The order that you add the groups here will dictate the order of bars in your chart.
 # A good practice is to add the control group IDs first followed by experimental group; or lowest age first in case of age groups.
 grouping = {
-    "CS0290": "Group1", 
-    "CS0291": "Group1", 
-    "CS0292": "Group1", 
-    "CS0293": "Group1",
-    "CS0294": "Group2",
-    "CS0295": "Group2",
+    "sub1": "Group1",
+    "sub2": "Group1",
+    "sub3": "Group2"
 } 
 
 # Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_density" for densities and "ROI_Volume_mm_3" for region volumes
 value_column = "cell_density"
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
-selected_hierarchy = "CustomLevel3_gm"
-specified_parent = "Isocortex" # Set to None if you want to plot data from the selected hierarchy level across the brain
+selected_hierarchy = "CustomLevel7_gm"
+specified_parent = None # Set to None if you want to plot data from the selected hierarchy level across the brain
 parent_hierarchy_level = "Allen_STlevel_5"
 
 # If you just want to plot one or a few regions, add them to a list here. 
@@ -87,17 +79,17 @@ region_list = []
 out_filename_prefix = "Example_bar"
 
 # Set the path to where you want your plots to be saved
-out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
+out_path = Path(r"example\path\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
-out_format = "tif"
+out_format = "png"
 
 # Choose a title for your plot
 plot_title = "Cell densities"
 
 # Set this to True or False as needed. Will only work with exactly two groups.
-apply_t_test = False  
+apply_t_test = True  
 
 # Optional if you're not happy with the hatch patterns. Choose hatch patterns to cycle through in the bars for each group
 hatch_patterns = ['', '///', '+++', '---', '+', 'x', 'o', 'O', '.']

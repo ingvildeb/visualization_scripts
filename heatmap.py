@@ -11,12 +11,11 @@ from utils import prepare_hierarchy_info, get_descriptive_stats, prepare_groupwi
 
 BACKGROUND
 
-This script allows you to plot barplots for two or more groups. Bars will be color coded by the Allen atlas hierarchy, and shaded differently
-per group.
+This script allows you to plot heatmaps for two or more groups. 
 
 You can choose which level of the Allen CCF hierarchy to plot the graphs at. The full hierarchy option will give you the finest granularity.
-Custom levels 1 through 7 are increasingly coarse levels. For this particular plot, Levels 4 through 7 are usually suitable if a parent is not
-specified. Finer levels should be plotted with a parent specified to avoid too crowded graphs. 
+Custom levels 1 through 7 are increasingly coarse levels. For this particular plot, you can try using quite fine levels due to the vertical layout. 
+You can also specify a parent level to plot only regions under that parent.
 
 Available hierarchy levels:
 
@@ -48,28 +47,20 @@ excel files to figure out which parents are available at which levels.
 
 #### USER INPUTS
 IDs_to_files_dict = {
-    "IEB0039": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0039_counted_3d_cells.csv"), 
-    "IEB0040": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0040_counted_3d_cells.csv"), 
-    "IEB0066": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0066_counted_3d_cells.csv"), 
-    "IEB0068": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0068_counted_3d_cells.csv"),
-    "IEB0079": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0079_counted_3d_cells.csv"),
-    "LJS011": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\LJS011_counted_3d_cells.csv"),
-    "IEB0078": Path(r"Z:\Labmembers\Ingvild\Cellpose\Aldh_model\cell density analysis\IEB0078.FIRSTIMAGE_counted_3d_cells.csv"),
+    "sub1": Path(r"example\path\your_file_1.csv"), 
+    "sub2": Path(r"example\path\your_file_2.csv"), 
+    "sub3": Path(r"example\path\your_file_3.csv")
 }
 
 # Assign each ID to a group. The order that you add the groups here will dictate the order of bars in your chart.
 grouping = {
-    "IEB0079": "P04",
-    "IEB0078": "P04",
-    "IEB0066": "P08", 
-    "IEB0068": "P08",
-    "IEB0039": "P14", 
-    "IEB0040": "P14", 
-    "LJS011": "P14",
+    "sub1": "P04",
+    "sub2": "P08",
+    "sub3": "P14"
 } 
 
 
-# Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_value" for values and "ROI_Volume_mm_3" for region volumes
+# Choose the metric you want to plot. Use "cell_counted" for absolute numbers, "cell_density" for densities and "ROI_Volume_mm_3" for region volumes
 value_column = "cell_density"
 
 # Choose your hierarchy level and optionally a parent level (refer to the background section above for details)
@@ -87,7 +78,7 @@ region_list = []
 out_filename_prefix = "Example_heatmap"
 
 # Set the path to where you want your plots to be saved
-out_path = Path(r"C:\Users\Ingvild\GitHub\visualization_scripts\example_graphs")
+out_path = Path(r"example\path\example_graphs")
 
 # Choose the output format. tif is good for images to be used in presentation. svg is good if you want to further 
 # edit the figure, e.g. for using it in a publication figure or poster.
