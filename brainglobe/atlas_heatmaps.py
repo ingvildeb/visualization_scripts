@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-
 import brainglobe_heatmap as bgh
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,7 +8,12 @@ parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.append(str(parent_dir))
 
-from utils.io_helpers import load_script_config, normalize_user_path
+from utils.io_helpers import (
+    load_script_config,
+    normalize_user_path,
+    require_absolute_path,
+    require_file,
+)
 from utils.utils import (
     average_value_dicts,
     collect_values_by_hierarchy,
@@ -18,34 +22,45 @@ from utils.utils import (
     prepare_hierarchy_info,
 )
 
-
-def resolve_config_path(path_like: str | Path, script_dir: Path) -> Path:
-    p = normalize_user_path(path_like)
-    return p if p.is_absolute() else (script_dir / p).resolve()
-
-
+# -------------------------
+# CONFIG LOADING
+# -------------------------
 script_path = Path(__file__).resolve()
-script_dir = script_path.parent
 test_mode = False
 cfg = load_script_config(script_path, "atlas_heatmaps", test_mode=test_mode)
 
-files = [resolve_config_path(p, script_dir) for p in cfg["files"]]
+# -------------------------
+# CONFIG PARAMETERS
+# -------------------------
+files = [
+    require_file(
+        require_absolute_path(normalize_user_path(p), f"Input CSV file #{i + 1}"),
+        f"Input CSV file #{i + 1}",
+    )
+    for i, p in enumerate(cfg["files"])
+]
 out_filename_prefix = cfg["out_filename_prefix"]
-out_path = resolve_config_path(cfg["out_path"], script_dir)
+out_path = require_absolute_path(normalize_user_path(cfg["out_path"]), "Output directory")
 out_format = cfg["out_format"]
 selected_hierarchy = cfg["selected_hierarchy"]
 colormap = cfg["colormap"]
-n = int(cfg["n"])
+n = cfg["n"]
 orientation = cfg["orientation"]
 id_system = cfg["id_system"]
 
-repo_root = script_dir.parent
+# -------------------------
+# PATHS
+# -------------------------
+repo_root = script_path.parent.parent
 allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = repo_root / "files" / "CCF_v3_ontology.json"
 custom_hier_path = repo_root / "files"
 out_path = out_path / f"{out_filename_prefix}_{orientation}_atlasHeatmaps"
 out_path.mkdir(parents=True, exist_ok=True)
 
+# -------------------------
+# MAIN
+# -------------------------
 value_column = "cell_density"
 
 all_values = []
