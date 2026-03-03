@@ -1,12 +1,8 @@
-# Folder containing 3D TIFF files to average.
-# Relative paths are resolved from this script folder.
-directory_path = '.'
+# Folder containing 3D TIFF files to average (absolute path).
+directory_path = 'C:\Users\YourName\path\to\tiff_folder'
 
 # Only files ending with this suffix are loaded.
 filename_suffix = '_cell_locations_ref_space.tif'
-
-# Z index used for quick preview plotting.
-slice_index = 10
 
 # Colormap used for the preview slice.
 plot_cmap = 'magma'
