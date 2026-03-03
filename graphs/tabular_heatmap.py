@@ -14,7 +14,8 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.utils import get_descriptive_stats, prepare_groupwise_values_dict, prepare_hierarchy_info
+from utils.atlas_data_prep import prepare_groupwise_values_dict, prepare_hierarchy_info
+from utils.stats import get_descriptive_stats
 
 
 def ordered_unique(values):

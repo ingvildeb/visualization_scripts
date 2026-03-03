@@ -14,13 +14,13 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.utils import (
-    average_value_dicts,
+from utils.atlas_data_prep import (
     collect_values_by_hierarchy,
     create_child_to_parent_mapping,
     load_and_prepare_data,
     prepare_hierarchy_info,
 )
+from utils.stats import average_value_dicts
 
 # -------------------------
 # CONFIG LOADING

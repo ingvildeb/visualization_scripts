@@ -13,12 +13,14 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.utils import (
+from utils.atlas_data_prep import (
+    prepare_groupwise_values_dict,
+    prepare_hierarchy_info,
+)
+from utils.stats import (
     get_descriptive_stats,
     metric_to_label,
     perform_t_tests,
-    prepare_groupwise_values_dict,
-    prepare_hierarchy_info,
 )
 
 
@@ -27,7 +29,7 @@ from utils.utils import (
 # -------------------------
 script_path = Path(__file__).resolve()
 test_mode = False
-cfg = load_script_config(script_path, "barplots_per_group", test_mode=test_mode)
+cfg = load_script_config(script_path, "barplot_per_group", test_mode=test_mode)
 
 # -------------------------
 # CONFIG PARAMETERS

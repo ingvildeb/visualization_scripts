@@ -13,14 +13,16 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.utils import (
-    average_value_dicts,
+from utils.atlas_data_prep import (
     collect_values_by_hierarchy,
     collect_values_directly,
     create_child_to_parent_mapping,
     load_and_prepare_data,
-    metric_to_label,
     prepare_hierarchy_info,
+)
+from utils.stats import (
+    average_value_dicts,
+    metric_to_label,
 )
 
 
@@ -29,7 +31,7 @@ from utils.utils import (
 # -------------------------
 script_path = Path(__file__).resolve()
 test_mode = False
-cfg = load_script_config(script_path, "graphing_barplots", test_mode=test_mode)
+cfg = load_script_config(script_path, "barplot", test_mode=test_mode)
 
 # -------------------------
 # CONFIG PARAMETERS

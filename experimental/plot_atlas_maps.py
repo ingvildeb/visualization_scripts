@@ -12,7 +12,8 @@ parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.append(str(parent_dir))
 
-from utils.utils import prepare_hierarchy_info, atlas_to_svg, convert_colors, create_grayscale_mapping
+from utils.atlas_data_prep import prepare_hierarchy_info
+from utils.atlas_render import atlas_to_svg, convert_colors, create_grayscale_mapping
 
 # Give the input folder to your subject
 input_folders = [Path(r"M:\SmartSPIM_Data\2025\2025_03\2025_03_20\20250320_17_02_13_NB_CS0290_M_P533_C57_LAS_488Lectin_561NeuN_640Iba1_4x_4umstep_Destripe_DONE\\"),
