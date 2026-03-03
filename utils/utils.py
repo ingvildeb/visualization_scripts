@@ -229,31 +229,51 @@ def prepare_groupwise_values_dict(IDs_to_files_dict, grouping, value_column, all
 
     return all_individual_values
 
-def get_descriptive_stats(all_individual_values):
-    """Calculates average values and standard errors for each group."""
+def get_descriptive_stats(all_individual_values, error_metric="se", return_all_error_metrics=False):
+    """Calculate average values plus SD/SE for each group."""
+    error_metric = str(error_metric).lower()
+    if error_metric not in {"se", "sd"}:
+        raise ValueError("error_metric must be 'se' or 'sd'")
+
     avg_values_to_group_dict = {}
     se_to_region_group_dict = {}
+    sd_to_region_group_dict = {}
     n_to_group_dict = {}
     
     for region, group_values in all_individual_values.items():
         avg_values_to_group_dict[region] = {}
         se_to_region_group_dict[region] = {}
+        sd_to_region_group_dict[region] = {}
         
         for group, values in group_values.items():
             n = len(values)
             if n > 0:
                 mean_value = np.mean(values)
-                se_value = np.std(values, ddof=1) / np.sqrt(n)  # Standard Error Calculation
+                sd_value = np.std(values, ddof=1) if n > 1 else 0.0
+                se_value = sd_value / np.sqrt(n)
                 
                 avg_values_to_group_dict[region][group] = mean_value
+                sd_to_region_group_dict[region][group] = sd_value
                 se_to_region_group_dict[region][group] = se_value
                 n_to_group_dict[group] = n
             else:
                 # Signal that no data is available
                 avg_values_to_group_dict[region][group] = np.nan  # Use NaN to indicate missing data
+                sd_to_region_group_dict[region][group] = np.nan
                 se_to_region_group_dict[region][group] = np.nan
 
-    return avg_values_to_group_dict, se_to_region_group_dict, n_to_group_dict
+    error_to_region_group_dict = se_to_region_group_dict if error_metric == "se" else sd_to_region_group_dict
+
+    if return_all_error_metrics:
+        return (
+            avg_values_to_group_dict,
+            error_to_region_group_dict,
+            n_to_group_dict,
+            sd_to_region_group_dict,
+            se_to_region_group_dict,
+        )
+
+    return avg_values_to_group_dict, error_to_region_group_dict, n_to_group_dict
 
 
 def perform_t_tests(all_individual_values, group1_name, group2_name):
@@ -335,70 +355,109 @@ def create_barplot(save_path, region_names, values, region_colors, parent_labels
 
 def create_groupwise_barplot(save_path, region_names, id_mapping, avg_values_to_region_dict,
                               se_to_region_group_dict, significant_results, groups, n_to_group_dict,
-                              region_colors, plot_title, hatch_patterns, value_name):
-    """Plots a bar chart of average values across regions with error bars."""
-    
+                              region_colors, plot_title, hatch_patterns, value_name,
+                              all_individual_values=None, error_mode="bars",
+                              jitter_frac=0.0, point_size=25, point_alpha=0.85,
+                              random_seed=0):
+    """
+    Plot groupwise bars with configurable uncertainty display.
+
+    error_mode options:
+    - "bars": show SE error bars
+    - "dots": show individual values as jittered dots
+    - "both": show both error bars and dots
+    - "none": show neither
+    """
     num_groups = len(groups)
+    error_mode = str(error_mode).lower()
+    if error_mode not in {"bars", "dots", "both", "none"}:
+        raise ValueError("error_mode must be one of: bars, dots, both, none")
+
+    show_error_bars = error_mode in {"bars", "both"}
+    show_dots = error_mode in {"dots", "both"}
 
     # Make graph wider if there are more than two groups
     extra_groups = num_groups - 2
 
-    x = np.arange(len(region_names))  # The label locations
-    width = 0.4 - (extra_groups * 0.15)  # The width of the bars
-    group_space = 0.1  # Space between groups of bars
+    x = np.arange(len(region_names))
+    width = 0.4 - (extra_groups * 0.15)
+    width = max(width, 0.08)
+    group_space = 0.1
     fig_width = 12 + (extra_groups + 8)
 
-    fig, ax = plt.subplots(figsize=(fig_width, 7))  # Adjust figure size as necessary
+    fig, ax = plt.subplots(figsize=(fig_width, 7))
+    rng = np.random.default_rng(random_seed)
 
-    # Loop through groups to draw bars
     for i, group in enumerate(groups):
-        # Adjust bar positions to ensure they are spaced correctly
-        bar_positions = x + i * (width + group_space)  # Shift bars over for each group
+        bar_positions = x + i * (width + group_space)
         bar_values = [avg_values_to_region_dict.get(region, {}).get(group, 0) for region in region_names]
         y_errors = [se_to_region_group_dict.get(region, {}).get(group, 0) for region in region_names]
-        
-        # Set hatch pattern for the bars
-        hatch = hatch_patterns[i % len(hatch_patterns)]  
 
-        # Create bars
-        ax.bar(bar_positions, bar_values, width, yerr=y_errors,
-               label=f"{group}, n = {n_to_group_dict.get(group)}", 
-               color=region_colors, hatch=hatch)
+        hatch = hatch_patterns[i % len(hatch_patterns)]
+        ax.bar(
+            bar_positions,
+            bar_values,
+            width,
+            yerr=y_errors if show_error_bars else None,
+            capsize=3 if show_error_bars else 0,
+            label=f"{group}, n = {n_to_group_dict.get(group)}",
+            color=region_colors,
+            hatch=hatch,
+            zorder=1,
+        )
 
-    # Annotate significant differences with asterisks and draw brackets
+        if show_dots and isinstance(all_individual_values, dict):
+            for j, region in enumerate(region_names):
+                vals = all_individual_values.get(region, {}).get(group, None)
+                if vals is None:
+                    continue
+                vals = np.asarray(vals, dtype=float)
+                if vals.size == 0:
+                    continue
+                jitter = rng.normal(0, width * jitter_frac, size=vals.size)
+                x_points = bar_positions[j] + jitter
+                ax.scatter(x_points, vals, s=point_size, alpha=point_alpha, color="black", zorder=3)
+
     for j, region in enumerate(region_names):
         if region in significant_results and significant_results[region] is not None:
-            # Calculate the x-coordinate for the bracket
-            start_x = j - (width + group_space) * 0.1  # Adjust for spacing
+            start_x = j - (width + group_space) * 0.1
             end_x = j + (width + group_space)
 
-            # Find the maximum error height for the current bars
-            max_bar_value = max(avg_values_to_region_dict[region].get(group, 0) for group in groups)
-            max_error = max([se_to_region_group_dict[region].get(g, 0) for g in groups]) if region in se_to_region_group_dict else 0
-            y_bracket = max(max_bar_value + max_error, 0) + 0.1 * max_bar_value  # Position for the bracket
+            candidates = []
+            for g in groups:
+                candidates.append(avg_values_to_region_dict.get(region, {}).get(g, 0))
+                if show_dots and isinstance(all_individual_values, dict):
+                    vals = all_individual_values.get(region, {}).get(g, [])
+                    if len(vals) > 0:
+                        candidates.append(np.max(vals))
+                if show_error_bars:
+                    candidates.append(
+                        avg_values_to_region_dict.get(region, {}).get(g, 0) +
+                        se_to_region_group_dict.get(region, {}).get(g, 0)
+                    )
 
-            # Draw the bracket
-            ax.plot([start_x, end_x], [y_bracket, y_bracket], color='black', lw=1.5)  # Draw the bracket
+            max_val = max(candidates) if candidates else 0
+            y_bracket = max_val + 0.08 * (max_val if max_val != 0 else 1)
 
-            # Annotate significance level above the bracket
-            ax.annotate(significant_results[region], 
-                        xy=((start_x + end_x) / 2, y_bracket + 0.05),  # Centered above the bracket
-                        fontsize=12, ha='center')
+            ax.plot([start_x, end_x], [y_bracket, y_bracket], color='black', lw=1.5, zorder=4)
+            ax.annotate(
+                significant_results[region],
+                xy=((start_x + end_x) / 2, y_bracket + 0.03 * (max_val if max_val != 0 else 1)),
+                fontsize=12,
+                ha='center'
+            )
 
-    # Finalize the plot
     ax.set_xlabel('Regions')
     ax.set_ylabel(value_name)
     ax.set_title(plot_title)
-    
-    # Center the x-ticks in relation to the bars
-    ax.set_xticks(x + (num_groups - 1) * (width + group_space) / 2)  
+
+    ax.set_xticks(x + (num_groups - 1) * (width + group_space) / 2)
     ax.set_xticklabels([id_mapping.get(region) for region in region_names], rotation=45, ha='right')
     ax.legend()
 
-    # Save and show the plot
     plt.tight_layout()
-    plt.savefig(save_path)  # Save as per your specified path
-    plt.show()  # Show the plot
+    plt.savefig(save_path)
+    plt.show()
 
 
 
@@ -485,3 +544,32 @@ def create_grayscale_mapping(roi_id, atlas_plate, color_mapping):
 
     return grayscale_mapping
 
+
+
+def create_groupwise_barplot2(save_path, region_names, id_mapping, avg_values_to_region_dict,
+                              se_to_region_group_dict, significant_results, groups, n_to_group_dict,
+                              region_colors, plot_title, hatch_patterns, value_name,
+                              all_individual_values, show_error_bars=False, jitter_frac=0.18,
+                              point_size=25, point_alpha=0.85, random_seed=0):
+    """Backward-compatible wrapper around create_groupwise_barplot."""
+    error_mode = "both" if show_error_bars else "dots"
+    return create_groupwise_barplot(
+        save_path,
+        region_names,
+        id_mapping,
+        avg_values_to_region_dict,
+        se_to_region_group_dict,
+        significant_results,
+        groups,
+        n_to_group_dict,
+        region_colors,
+        plot_title,
+        hatch_patterns,
+        value_name,
+        all_individual_values=all_individual_values,
+        error_mode=error_mode,
+        jitter_frac=jitter_frac,
+        point_size=point_size,
+        point_alpha=point_alpha,
+        random_seed=random_seed,
+    )

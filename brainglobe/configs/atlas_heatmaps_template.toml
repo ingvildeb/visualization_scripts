@@ -1,0 +1,30 @@
+# Paths to input CSV files. Relative paths are resolved from this script folder.
+files = [
+  '../files/counted_3d_cells.csv',
+  '../files/counted_3d_cells.csv',
+  '../files/counted_3d_cells.csv'
+]
+
+# Prefix for output folder/files.
+out_filename_prefix = 'Example_atlas_heatmap'
+
+# Parent output directory where atlas plate images will be written.
+out_path = '../graphs/example_graphs'
+
+# Output file format for atlas images (e.g., png, tif, svg).
+out_format = 'png'
+
+# Allen hierarchy level used to aggregate regional values.
+selected_hierarchy = 'CustomLevel1_gm'
+
+# Matplotlib colormap used for intensity mapping.
+colormap = 'viridis'
+
+# Number of atlas plates to sample across the selected orientation.
+n = 6
+
+# Plate orientation: frontal, sagittal, or horizontal.
+orientation = 'horizontal'
+
+# Input ROI ID system: KimLab16bit or OriginalAllen.
+id_system = 'KimLab16bit'

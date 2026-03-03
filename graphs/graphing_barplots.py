@@ -1,4 +1,9 @@
+import sys
 from pathlib import Path
+
+parent_dir = Path(__file__).resolve().parent.parent
+if str(parent_dir) not in sys.path:
+    sys.path.append(str(parent_dir))
 
 from utils.io_helpers import load_script_config, normalize_user_path
 from utils.utils import (
@@ -12,27 +17,27 @@ from utils.utils import (
 )
 
 
-def config_path(value: str | Path, script_dir: Path) -> Path:
-    p = normalize_user_path(value)
-    return p if p.is_absolute() else (script_dir / p)
+def resolve_config_path(path_like: str | Path, script_dir: Path) -> Path:
+    p = normalize_user_path(path_like)
+    return p if p.is_absolute() else (script_dir / p).resolve()
 
 
 def resolve_value_name(value_column: str) -> str:
-    mapping = {
-        "cell_density": "Density",
-        "cell_counted": "Cell number",
-        "ROI_Volume_mm_3": "Region volume",
-    }
-    return mapping.get(value_column, value_column)
+    if value_column == "cell_density":
+        return "Density"
+    if value_column == "cell_counted":
+        return "Cell number"
+    if value_column == "ROI_Volume_mm_3":
+        return "Region volume"
+    return value_column
 
 
-# CONFIG
-script_path = Path(__file__)
-script_dir = script_path.parent.resolve()
+script_path = Path(__file__).resolve()
+script_dir = script_path.parent
 test_mode = False
 cfg = load_script_config(script_path, "graphing_barplots", test_mode=test_mode)
 
-files = [config_path(p, script_dir) for p in cfg["files"]]
+files = [resolve_config_path(p, script_dir) for p in cfg["files"]]
 selected_hierarchy = cfg["selected_hierarchy"]
 specified_parent = cfg.get("specified_parent")
 if specified_parent in ("", "None", "none", False):
@@ -40,16 +45,16 @@ if specified_parent in ("", "None", "none", False):
 parent_hierarchy_level = cfg["parent_hierarchy_level"]
 value_column = cfg["value_column"]
 out_filename_prefix = cfg["out_filename_prefix"]
-out_path = config_path(cfg["out_path"], script_dir)
+out_path = resolve_config_path(cfg["out_path"], script_dir)
 out_format = cfg["out_format"]
 plot_title = cfg["plot_title"]
 id_system = cfg["id_system"]
 region_list = cfg.get("region_list", [])
 
-# MAIN
-allen2intfile = script_dir / "files" / "CCFv3_OntologyStructure_u16.xlsx"
-hierarchy_file = script_dir / "files" / "CCF_v3_ontology.json"
-custom_hier_path = script_dir / "files"
+repo_root = script_dir.parent
+allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
+hierarchy_file = repo_root / "files" / "CCF_v3_ontology.json"
+custom_hier_path = repo_root / "files"
 out_path.mkdir(parents=True, exist_ok=True)
 
 if specified_parent:
@@ -57,6 +62,7 @@ if specified_parent:
 else:
     save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}.{out_format}"
 
+n = len(files)
 value_name = resolve_value_name(value_column)
 
 id_mapping, color_mapping, _acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
@@ -85,7 +91,7 @@ for file in files:
 
     all_values.append(values_in_file)
 
-if len(files) > 1:
+if n > 1:
     value_dict, se_dict = average_value_dicts(all_values)
 else:
     value_dict, se_dict = all_values[0], None
@@ -109,7 +115,7 @@ for i in range(len(parent_labels) - 1):
     if parent_labels[i] == "":
         parent_labels[i] = parent_labels[i + 1]
 
-if len(files) > 1:
+if n > 1:
     create_barplot(
         save_path,
         region_names,

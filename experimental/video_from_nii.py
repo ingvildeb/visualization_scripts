@@ -3,7 +3,7 @@ import numpy as np
 import nibabel as nib
 
 # Specify paths and number of channels
-file_path = r"Z:\LSFM\2025\2025_03\20250320_17_02_13_NB_CS0290_M_P533_C57_LAS_488Lectin_561NeuN_640Iba1_4x_4umstep_Destripe_DONE\\"
+file_path = r"M:\SmartSPIM_Data\2025\2025_11\2025_11_07\20251107_12_55_02_NB_100679_M_P14_C3_LAS_488Lectin_561NeuN_640Iba1_4x_4umstep_Destripe_DONE\\"
 channels = 3
 
 # Set the brightness adjustment factor. You can set separate ones for each channel.

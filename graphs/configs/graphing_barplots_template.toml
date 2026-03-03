@@ -1,0 +1,36 @@
+# Paths to input CSV files. Relative paths are resolved from this script folder.
+files = [
+  '../files/counted_3d_cells.csv',
+  '../files/counted_3d_cells.csv',
+  '../files/counted_3d_cells.csv'
+]
+
+# Allen hierarchy level to plot.
+selected_hierarchy = 'CustomLevel6_gm'
+
+# Optional parent region filter (set to '' for no parent filter).
+specified_parent = ''
+
+# Hierarchy table used to map child regions to parents.
+parent_hierarchy_level = 'Allen_STlevel_5'
+
+# Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
+value_column = 'cell_density'
+
+# Prefix for output filename.
+out_filename_prefix = 'Example_barplot_singleSamples'
+
+# Output directory.
+out_path = 'example_graphs'
+
+# Output file format.
+out_format = 'png'
+
+# Plot title.
+plot_title = 'Cell density'
+
+# Input ROI ID system: KimLab16bit or OriginalAllen.
+id_system = 'KimLab16bit'
+
+# Optional explicit regions by name. Leave empty to use hierarchy selection.
+region_list = []

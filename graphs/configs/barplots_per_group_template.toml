@@ -1,0 +1,58 @@
+# Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
+value_column = 'cell_density'
+
+# Allen hierarchy level to plot.
+selected_hierarchy = 'CustomLevel6_gm'
+
+# Optional parent region filter (set to '' for no parent filter).
+specified_parent = ''
+
+# Hierarchy table used to map child regions to parents.
+parent_hierarchy_level = 'Allen_STlevel_5'
+
+# Optional explicit regions by name. Leave empty to use hierarchy selection.
+region_list = []
+
+# Prefix for output filename.
+out_filename_prefix = 'Example_barplot_multiSamples'
+
+# Output directory.
+out_path = 'example_graphs'
+
+# Output file format.
+out_format = 'png'
+
+# Plot title.
+plot_title = 'Cell densities'
+
+# If true, run t-test (only valid for exactly two groups).
+apply_t_test = true
+
+# Hatch styles cycled across groups.
+hatch_patterns = ['', '///', '+++', '---', '+', 'x', 'o', 'O', '.']
+
+# Input ROI ID system: KimLab16bit or OriginalAllen.
+id_system = 'KimLab16bit'
+
+# Error metric for variability: 'se' (standard error) or 'sd' (standard deviation).
+error_metric = 'se'
+
+# Error visualization mode: bars, dots, both, or none.
+error_mode = 'dots'
+
+# Horizontal jitter fraction for individual points.
+jitter_frac = 0.0
+
+# Map sample IDs to input CSV files.
+[ids_to_files]
+'sample_1' = '../files/counted_3d_cells.csv'
+'sample_2' = '../files/counted_3d_cells.csv'
+'sample_3' = '../files/counted_3d_cells.csv'
+'sample_4' = '../files/counted_3d_cells.csv'
+
+# Map each sample ID to its group label.
+[grouping]
+'sample_1' = 'group_a'
+'sample_2' = 'group_a'
+'sample_3' = 'group_b'
+'sample_4' = 'group_b'

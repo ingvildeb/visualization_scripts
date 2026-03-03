@@ -1,0 +1,50 @@
+# Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
+value_column = 'cell_density'
+
+# Allen hierarchy level to plot.
+selected_hierarchy = 'CustomLevel1_gm'
+
+# Optional parent region filter (set to '' for no parent filter).
+specified_parent = ''
+
+# Hierarchy table used to map child regions to parents.
+parent_hierarchy_level = 'Allen_STlevel_5'
+
+# Optional explicit regions by name. Leave empty to use hierarchy selection.
+region_list = []
+
+# Prefix for output filename.
+out_filename_prefix = 'Example_heatmap'
+
+# Output directory.
+out_path = 'example_graphs'
+
+# Output file format.
+out_format = 'svg'
+
+# Plot title.
+plot_title = 'Cell densities'
+
+# X-axis title (group descriptor such as age/genotype/treatment).
+x_axis_title = 'Group'
+
+# Heatmap orientation: horizontal or vertical.
+orientation = 'horizontal'
+
+# Input ROI ID system: KimLab16bit or OriginalAllen.
+id_system = 'KimLab16bit'
+
+# Error metric for variability column: 'se' (standard error) or 'sd' (standard deviation).
+error_metric = 'se'
+
+[ids_to_files]
+'sample_1' = '../files/counted_3d_cells.csv'
+'sample_2' = '../files/counted_3d_cells.csv'
+'sample_3' = '../files/counted_3d_cells.csv'
+'sample_4' = '../files/counted_3d_cells.csv'
+
+[grouping]
+'sample_1' = 'C57'
+'sample_2' = 'C57'
+'sample_3' = 'Mut'
+'sample_4' = 'Mut'

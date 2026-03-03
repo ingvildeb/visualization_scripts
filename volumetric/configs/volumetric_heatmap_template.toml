@@ -1,0 +1,15 @@
+# Folder containing 3D TIFF files to average.
+# Relative paths are resolved from this script folder.
+directory_path = '.'
+
+# Only files ending with this suffix are loaded.
+filename_suffix = '_cell_locations_ref_space.tif'
+
+# Z index used for quick preview plotting.
+slice_index = 10
+
+# Colormap used for the preview slice.
+plot_cmap = 'magma'
+
+# Name of output NIfTI file saved into directory_path.
+output_nifti_name = 'average_volume.nii.gz'

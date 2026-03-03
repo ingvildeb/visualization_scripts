@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 import nibabel as nib
 import numpy as np
 import tifffile
@@ -6,7 +7,12 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
 import pandas as pd
-from utils import prepare_hierarchy_info, atlas_to_svg, convert_colors, create_grayscale_mapping
+
+parent_dir = Path(__file__).resolve().parent.parent
+if str(parent_dir) not in sys.path:
+    sys.path.append(str(parent_dir))
+
+from utils.utils import prepare_hierarchy_info, atlas_to_svg, convert_colors, create_grayscale_mapping
 
 # Give the input folder to your subject
 input_folders = [Path(r"M:\SmartSPIM_Data\2025\2025_03\2025_03_20\20250320_17_02_13_NB_CS0290_M_P533_C57_LAS_488Lectin_561NeuN_640Iba1_4x_4umstep_Destripe_DONE\\"),
@@ -33,7 +39,7 @@ roi_image = True
 ## MAIN CODE, do not edit
 
 # Path setup
-base_path = Path(__file__).parent.resolve()
+base_path = parent_dir
 allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = base_path / "files" / "CCF_v3_ontology.json"
 custom_hier_path = base_path / "files"
