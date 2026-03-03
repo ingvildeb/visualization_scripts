@@ -32,5 +32,14 @@ plot_title = 'Cell density'
 # Input ROI ID system: KimLab16bit or OriginalAllen.
 id_system = 'KimLab16bit'
 
+# Error metric for variability: 'se' (standard error) or 'sd' (standard deviation).
+error_metric = 'se'
+
+# Error visualization mode: bars, dots, both, or none.
+error_mode = 'bars'
+
+# Horizontal jitter fraction for individual points (used with dots/both).
+jitter_frac = 0.0
+
 # Optional explicit regions by name. Leave empty to use hierarchy selection.
 region_list = []

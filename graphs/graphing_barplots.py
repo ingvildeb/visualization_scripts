@@ -1,5 +1,7 @@
 import sys
 from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
 
 parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
@@ -15,7 +17,6 @@ from utils.utils import (
     average_value_dicts,
     collect_values_by_hierarchy,
     collect_values_directly,
-    create_barplot,
     create_child_to_parent_mapping,
     load_and_prepare_data,
     metric_to_label,
@@ -50,6 +51,9 @@ out_format = cfg["out_format"]
 plot_title = cfg["plot_title"]
 id_system = cfg["id_system"]
 region_list = cfg["region_list"]
+error_metric = cfg["error_metric"]
+error_mode = cfg["error_mode"]
+jitter_frac = cfg["jitter_frac"]
 
 # -------------------------
 # PATHS
@@ -98,12 +102,12 @@ for file in files:
     all_values.append(values_in_file)
 
 if n > 1:
-    value_dict, error_dict = average_value_dicts(all_values)
+    value_dict, error_dict = average_value_dicts(all_values, error_metric=error_metric)
 else:
     value_dict, error_dict = all_values[0], None
 
 values = []
-standard_errors = []
+error_values = []
 region_names = []
 region_colors = []
 parent_labels = []
@@ -115,34 +119,80 @@ for region_id, value in value_dict.items():
     values.append(value)
 
     if error_dict:
-        standard_errors.append(error_dict.get(region_id))
+        error_values.append(error_dict.get(region_id))
 
 for i in range(len(parent_labels) - 1):
     if parent_labels[i] == "":
         parent_labels[i] = parent_labels[i + 1]
 
-if n > 1:
-    create_barplot(
-        save_path,
-        region_names,
-        values,
-        region_colors,
-        parent_labels,
-        plot_title,
-        value_name,
-        yerr=standard_errors,
-        selected_hierarchy=selected_hierarchy,
-        specified_parent=specified_parent,
-    )
-else:
-    create_barplot(
-        save_path,
-        region_names,
-        values,
-        region_colors,
-        parent_labels,
-        plot_title,
-        value_name,
-        selected_hierarchy=selected_hierarchy,
-        specified_parent=specified_parent,
-    )
+error_mode = str(error_mode).lower()
+if error_mode not in {"bars", "dots", "both", "none"}:
+    raise ValueError("error_mode must be one of: bars, dots, both, none")
+
+show_error_bars = error_mode in {"bars", "both"}
+show_dots = error_mode in {"dots", "both"}
+yerr_values = error_values if (n > 1 and show_error_bars) else None
+
+fig, ax = plt.subplots(figsize=(35, 15))
+x = np.arange(len(region_names))
+bar_width = 0.8
+ax.bar(x, values, yerr=yerr_values, color=region_colors, width=bar_width, capsize=3 if yerr_values is not None else 0)
+
+if show_dots:
+    rng = np.random.default_rng(0)
+    for j, region_id in enumerate(value_dict.keys()):
+        vals = []
+        for d in all_values:
+            if region_id in d:
+                vals.append(d[region_id])
+        if not vals:
+            continue
+        vals = np.asarray(vals, dtype=float)
+        jitter = rng.normal(0, bar_width * jitter_frac, size=vals.size)
+        x_points = x[j] + jitter
+        ax.scatter(x_points, vals, s=25, alpha=0.85, color="black", zorder=3)
+
+ax.set_ylabel(value_name, fontsize=16)
+ax.set_title(plot_title, fontsize=20)
+ax.set_xticks(x)
+ax.set_xticklabels(region_names, rotation=45, ha="right", fontsize=16)
+
+if selected_hierarchy in ["CustomLevel1_gm", "CustomLevel2_gm", "CustomLevel3_gm", "FullHierarchy"] and specified_parent is None:
+    ax.set_xticklabels([])
+    ax.tick_params(axis="x", which="both", bottom=False, top=False)
+
+    sec_ax = ax.secondary_xaxis("bottom")
+    sec_ax.tick_params(axis="x", which="both", bottom=False, top=False)
+
+    unique_parents = list(dict.fromkeys(parent_labels))
+    group_boundaries = []
+    group_positions = []
+    parent_names = []
+
+    for parent in unique_parents:
+        indices = [i for i, x in enumerate(parent_labels) if x == parent]
+        if indices:
+            start_index, end_index = indices[0], indices[-1]
+            group_boundaries.append((start_index, end_index))
+            group_positions.append((start_index + end_index) / 2)
+
+        parent_names.append(parent)
+
+    sec_ax.set_xticks(group_positions)
+    sec_ax.set_xticklabels(parent_names, rotation=45, ha="right", fontsize=16)
+    plt.subplots_adjust(bottom=0.2)
+
+    for start, end in group_boundaries:
+        ax.annotate(
+            "",
+            xy=(start, -0.005),
+            xytext=(end, -0.005),
+            arrowprops=dict(arrowstyle="-", lw=2, color="black"),
+            annotation_clip=False,
+            xycoords=("data", "axes fraction"),
+            textcoords=("data", "axes fraction"),
+        )
+
+plt.tight_layout()
+plt.savefig(save_path)
+plt.show()

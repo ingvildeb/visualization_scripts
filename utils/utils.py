@@ -1,13 +1,8 @@
 import pandas as pd
 import json
 import numpy as np
-from collections import defaultdict
-import matplotlib.pyplot as plt
-import seaborn as sns
 from scipy import stats
-import nibabel as nib
 import cv2
-from PIL import Image
 
 
 def metric_to_label(value_column):
@@ -160,7 +155,11 @@ def collect_values_by_hierarchy(data_file, values_column, hierarchy_regions, sel
 
     return all_values
 
-def average_value_dicts(dict_list):
+def average_value_dicts(dict_list, error_metric="se", return_all_error_metrics=False):
+    error_metric = str(error_metric).lower()
+    if error_metric not in {"se", "sd"}:
+        raise ValueError("error_metric must be 'se' or 'sd'")
+
     # Initialize dictionaries to hold the sums, counts, and sums of squares
     sums = {}
     counts = {}
@@ -179,19 +178,30 @@ def average_value_dicts(dict_list):
                 counts[key] = 1
                 sums_of_squares[key] = value ** 2
 
-    # Initialize dictionaries for averages and standard errors
+    # Initialize dictionaries for averages and error metrics
     averages = {}
+    standard_deviations = {}
     standard_errors = {}
 
-    # Calculate averages and standard errors
+    # Calculate averages and error metrics
     for key in sums:
         averages[key] = sums[key] / counts[key]
-        # Calculate variance and standard error
-        variance = (sums_of_squares[key] / counts[key]) - (averages[key] ** 2)
-        standard_deviation = variance ** 0.5
-        standard_errors[key] = standard_deviation / (counts[key] ** 0.5)
+        n = counts[key]
+        if n > 1:
+            variance = (sums_of_squares[key] - (sums[key] ** 2) / n) / (n - 1)
+            variance = max(variance, 0.0)
+            standard_deviation = variance ** 0.5
+        else:
+            standard_deviation = 0.0
+        standard_error = standard_deviation / (n ** 0.5)
 
-    return averages, standard_errors
+        standard_deviations[key] = standard_deviation
+        standard_errors[key] = standard_error
+
+    selected_error = standard_errors if error_metric == "se" else standard_deviations
+    if return_all_error_metrics:
+        return averages, selected_error, standard_deviations, standard_errors
+    return averages, selected_error
 
 
 def normalize_value_values(value_dict_list):
@@ -307,171 +317,6 @@ def perform_t_tests(all_individual_values, group1_name, group2_name):
 
     return significant_results
 
-def add_bracket(ax, x_range, y_pos=1.05, line_width=2):
-    start, end = x_range
-    ax.annotate('', xy=(start, y_pos), xytext=(end, y_pos),
-                arrowprops=dict(arrowstyle='-', lw=line_width, color='black'),
-                annotation_clip=False, xycoords=('data', 'axes fraction'), textcoords=('data', 'axes fraction'))
-
-def create_barplot(save_path, region_names, values, region_colors, parent_labels, plot_title, value_name,
-                   group_labels=False, yerr=None, selected_hierarchy="FullHierarchy", specified_parent=None, rotation=45, 
-                   ha='right', fontsize_labels=16, fontsize_titles=20, figsize=(35, 15)):
-    
-    # Plot the data
-    fig, ax = plt.subplots(figsize=figsize)
-
-    ax.bar(region_names, values, yerr=yerr, color=region_colors)
-    ax.set_ylabel(value_name, fontsize=fontsize_labels)
-    ax.set_title(plot_title, fontsize=fontsize_titles)
-    ax.set_xticklabels(region_names, rotation=rotation, ha=ha, fontsize=fontsize_labels)
-
-    # Grouping the x-axis
-    if selected_hierarchy in ["CustomLevel1_gm", "CustomLevel2_gm", "CustomLevel3_gm", "FullHierarchy"] and specified_parent is None:
-        # Hide the main x-axis labels
-        ax.set_xticklabels([])
-        ax.tick_params(axis='x', which='both', bottom=False, top=False)
-
-        # Create a secondary x-axis for the parent groups
-        sec_ax = ax.secondary_xaxis('bottom')
-        sec_ax.tick_params(axis='x', which='both', bottom=False, top=False)
-
-        unique_parents = list(dict.fromkeys(parent_labels))
-        group_boundaries = []
-        group_positions = []
-        parent_names = []
-
-        for parent in unique_parents:
-            indices = [i for i, x in enumerate(parent_labels) if x == parent]
-            if indices:
-                start_index, end_index = indices[0], indices[-1]
-                group_boundaries.append((start_index, end_index))
-                group_positions.append((start_index + end_index) / 2)
-            
-            parent_names.append(parent)
-        
-        sec_ax.set_xticks(group_positions)
-        sec_ax.set_xticklabels(parent_names, rotation=45, ha='right', fontsize=16)
-
-        plt.subplots_adjust(bottom=0.2)
-
-        # Bracket application
-        for start, end in group_boundaries:
-            add_bracket(ax, (start, end), y_pos=-0.005, line_width=2)
-
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.show()
-
-
-def create_groupwise_barplot(save_path, region_names, id_mapping, avg_values_to_region_dict,
-                              se_to_region_group_dict, significant_results, groups, n_to_group_dict,
-                              region_colors, plot_title, hatch_patterns, value_name,
-                              all_individual_values=None, error_mode="bars",
-                              jitter_frac=0.0, point_size=25, point_alpha=0.85,
-                              random_seed=0):
-    """
-    Plot groupwise bars with configurable uncertainty display.
-
-    error_mode options:
-    - "bars": show SE error bars
-    - "dots": show individual values as jittered dots
-    - "both": show both error bars and dots
-    - "none": show neither
-    """
-    num_groups = len(groups)
-    error_mode = str(error_mode).lower()
-    if error_mode not in {"bars", "dots", "both", "none"}:
-        raise ValueError("error_mode must be one of: bars, dots, both, none")
-
-    show_error_bars = error_mode in {"bars", "both"}
-    show_dots = error_mode in {"dots", "both"}
-
-    # Make graph wider if there are more than two groups
-    extra_groups = num_groups - 2
-
-    x = np.arange(len(region_names))
-    width = 0.4 - (extra_groups * 0.15)
-    width = max(width, 0.08)
-    group_space = 0.1
-    fig_width = 12 + (extra_groups + 8)
-
-    fig, ax = plt.subplots(figsize=(fig_width, 7))
-    rng = np.random.default_rng(random_seed)
-
-    for i, group in enumerate(groups):
-        bar_positions = x + i * (width + group_space)
-        bar_values = [avg_values_to_region_dict.get(region, {}).get(group, 0) for region in region_names]
-        y_errors = [se_to_region_group_dict.get(region, {}).get(group, 0) for region in region_names]
-
-        hatch = hatch_patterns[i % len(hatch_patterns)]
-        ax.bar(
-            bar_positions,
-            bar_values,
-            width,
-            yerr=y_errors if show_error_bars else None,
-            capsize=3 if show_error_bars else 0,
-            label=f"{group}, n = {n_to_group_dict.get(group)}",
-            color=region_colors,
-            hatch=hatch,
-            zorder=1,
-        )
-
-        if show_dots and isinstance(all_individual_values, dict):
-            for j, region in enumerate(region_names):
-                vals = all_individual_values.get(region, {}).get(group, None)
-                if vals is None:
-                    continue
-                vals = np.asarray(vals, dtype=float)
-                if vals.size == 0:
-                    continue
-                jitter = rng.normal(0, width * jitter_frac, size=vals.size)
-                x_points = bar_positions[j] + jitter
-                ax.scatter(x_points, vals, s=point_size, alpha=point_alpha, color="black", zorder=3)
-
-    for j, region in enumerate(region_names):
-        if region in significant_results and significant_results[region] is not None:
-            start_x = j - (width + group_space) * 0.1
-            end_x = j + (width + group_space)
-
-            candidates = []
-            for g in groups:
-                candidates.append(avg_values_to_region_dict.get(region, {}).get(g, 0))
-                if show_dots and isinstance(all_individual_values, dict):
-                    vals = all_individual_values.get(region, {}).get(g, [])
-                    if len(vals) > 0:
-                        candidates.append(np.max(vals))
-                if show_error_bars:
-                    candidates.append(
-                        avg_values_to_region_dict.get(region, {}).get(g, 0) +
-                        se_to_region_group_dict.get(region, {}).get(g, 0)
-                    )
-
-            max_val = max(candidates) if candidates else 0
-            y_bracket = max_val + 0.08 * (max_val if max_val != 0 else 1)
-
-            ax.plot([start_x, end_x], [y_bracket, y_bracket], color='black', lw=1.5, zorder=4)
-            ax.annotate(
-                significant_results[region],
-                xy=((start_x + end_x) / 2, y_bracket + 0.03 * (max_val if max_val != 0 else 1)),
-                fontsize=12,
-                ha='center'
-            )
-
-    ax.set_xlabel('Regions')
-    ax.set_ylabel(value_name)
-    ax.set_title(plot_title)
-
-    ax.set_xticks(x + (num_groups - 1) * (width + group_space) / 2)
-    ax.set_xticklabels([id_mapping.get(region) for region in region_names], rotation=45, ha='right')
-    ax.legend()
-
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.show()
-
-
-
-
 def hex_to_rgb(hex_color):
     """Convert a hex color string to an RGB tuple."""
     hex_color = str(hex_color)
@@ -554,32 +399,3 @@ def create_grayscale_mapping(roi_id, atlas_plate, color_mapping):
 
     return grayscale_mapping
 
-
-
-def create_groupwise_barplot2(save_path, region_names, id_mapping, avg_values_to_region_dict,
-                              se_to_region_group_dict, significant_results, groups, n_to_group_dict,
-                              region_colors, plot_title, hatch_patterns, value_name,
-                              all_individual_values, show_error_bars=False, jitter_frac=0.18,
-                              point_size=25, point_alpha=0.85, random_seed=0):
-    """Backward-compatible wrapper around create_groupwise_barplot."""
-    error_mode = "both" if show_error_bars else "dots"
-    return create_groupwise_barplot(
-        save_path,
-        region_names,
-        id_mapping,
-        avg_values_to_region_dict,
-        se_to_region_group_dict,
-        significant_results,
-        groups,
-        n_to_group_dict,
-        region_colors,
-        plot_title,
-        hatch_patterns,
-        value_name,
-        all_individual_values=all_individual_values,
-        error_mode=error_mode,
-        jitter_frac=jitter_frac,
-        point_size=point_size,
-        point_alpha=point_alpha,
-        random_seed=random_seed,
-    )
