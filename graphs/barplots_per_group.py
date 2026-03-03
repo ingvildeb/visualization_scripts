@@ -32,7 +32,7 @@ def resolve_value_name(value_column: str) -> str:
 
 script_path = Path(__file__).resolve()
 script_dir = script_path.parent
-test_mode = True
+test_mode = False
 cfg = load_script_config(script_path, "barplots_per_group", test_mode=test_mode)
 
 ids_to_files_dict = {k: resolve_config_path(v, script_dir) for k, v in cfg["ids_to_files"].items()}
