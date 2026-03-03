@@ -9,6 +9,16 @@ import nibabel as nib
 import cv2
 from PIL import Image
 
+
+def metric_to_label(value_column):
+    mapping = {
+        "cell_density": "Density",
+        "cell_counted": "Cell number",
+        "ROI_Volume_mm_3": "Region volume",
+    }
+    return mapping.get(value_column, value_column)
+
+
 def get_mappings(data, key_property, value_property, default_value=None):
     mapping = {}
     

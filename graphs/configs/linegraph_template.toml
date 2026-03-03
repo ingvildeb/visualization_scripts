@@ -17,7 +17,7 @@ region_list = []
 out_filename_prefix = 'Example_linegraph'
 
 # Output directory.
-out_path = 'example_graphs'
+out_path = 'C:\Users\YourName\path\to\output'
 
 # Output file format.
 out_format = 'png'
@@ -37,12 +37,27 @@ id_system = 'KimLab16bit'
 # Error metric for variability shading: 'se' (standard error) or 'sd' (standard deviation).
 error_metric = 'se'
 
+# Optional secondary grouping (example: sex) to split each region into multiple lines.
+# Add a [secondary_grouping] table with the same sample IDs as [grouping].
+# secondary_group_label controls legend text for that split.
+secondary_group_label = 'Sex'
+
+# Style cycles for secondary groups.
+split_line_styles = ['-', '--', ':', '-.']
+split_markers = ['o', 's', '^', 'D', 'v', 'P', 'X', '*']
+
 [ids_to_files]
-'sample_1' = '../files/counted_3d_cells.csv'
-'sample_2' = '../files/counted_3d_cells.csv'
-'sample_3' = '../files/counted_3d_cells.csv'
+'sample_1' = 'C:\Users\YourName\path\to\sample_1_counted_3d_cells.csv'
+'sample_2' = 'C:\Users\YourName\path\to\sample_2_counted_3d_cells.csv'
+'sample_3' = 'C:\Users\YourName\path\to\sample_3_counted_3d_cells.csv'
 
 [grouping]
 'sample_1' = 'P6'
 'sample_2' = 'P14'
 'sample_3' = 'P28'
+
+[secondary_grouping]
+# Optional: assign subgroups to enable split lines.
+# 'sample_1' = 'F'
+# 'sample_2' = 'M'
+# 'sample_3' = 'F'

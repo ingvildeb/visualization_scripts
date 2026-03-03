@@ -17,7 +17,7 @@ region_list = []
 out_filename_prefix = 'Example_barplot_multiSamples'
 
 # Output directory.
-out_path = 'example_graphs'
+out_path = 'C:\Users\YourName\path\to\output'
 
 # Output file format.
 out_format = 'png'
@@ -45,10 +45,10 @@ jitter_frac = 0.0
 
 # Map sample IDs to input CSV files.
 [ids_to_files]
-'sample_1' = '../files/counted_3d_cells.csv'
-'sample_2' = '../files/counted_3d_cells.csv'
-'sample_3' = '../files/counted_3d_cells.csv'
-'sample_4' = '../files/counted_3d_cells.csv'
+'sample_1' = 'C:\Users\YourName\path\to\sample_1_counted_3d_cells.csv'
+'sample_2' = 'C:\Users\YourName\path\to\sample_2_counted_3d_cells.csv'
+'sample_3' = 'C:\Users\YourName\path\to\sample_3_counted_3d_cells.csv'
+'sample_4' = 'C:\Users\YourName\path\to\sample_4_counted_3d_cells.csv'
 
 # Map each sample ID to its group label.
 [grouping]

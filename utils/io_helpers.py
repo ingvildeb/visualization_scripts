@@ -30,6 +30,14 @@ def require_file(path: str | Path, name: str = "File") -> Path:
     return p
 
 
+def require_absolute_path(path: str | Path, name: str = "Path") -> Path:
+    """Ensure a path is absolute."""
+    p = normalize_user_path(path)
+    if not p.is_absolute():
+        raise RuntimeError(f"{name} must be an absolute path:\n{p}")
+    return p
+
+
 def require_subpath(parent: Path, sub: str, name: str) -> Path:
     """Ensure that a required subpath exists inside a parent directory."""
     p = parent / sub

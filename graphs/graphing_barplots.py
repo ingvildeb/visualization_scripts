@@ -5,7 +5,12 @@ parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.append(str(parent_dir))
 
-from utils.io_helpers import load_script_config, normalize_user_path
+from utils.io_helpers import (
+    load_script_config,
+    normalize_user_path,
+    require_absolute_path,
+    require_file,
+)
 from utils.utils import (
     average_value_dicts,
     collect_values_by_hierarchy,
@@ -13,45 +18,43 @@ from utils.utils import (
     create_barplot,
     create_child_to_parent_mapping,
     load_and_prepare_data,
+    metric_to_label,
     prepare_hierarchy_info,
 )
 
 
-def resolve_config_path(path_like: str | Path, script_dir: Path) -> Path:
-    p = normalize_user_path(path_like)
-    return p if p.is_absolute() else (script_dir / p).resolve()
-
-
-def resolve_value_name(value_column: str) -> str:
-    if value_column == "cell_density":
-        return "Density"
-    if value_column == "cell_counted":
-        return "Cell number"
-    if value_column == "ROI_Volume_mm_3":
-        return "Region volume"
-    return value_column
-
-
+# -------------------------
+# CONFIG LOADING
+# -------------------------
 script_path = Path(__file__).resolve()
-script_dir = script_path.parent
 test_mode = False
 cfg = load_script_config(script_path, "graphing_barplots", test_mode=test_mode)
 
-files = [resolve_config_path(p, script_dir) for p in cfg["files"]]
+# -------------------------
+# CONFIG PARAMETERS
+# -------------------------
+files = [
+    require_file(
+        require_absolute_path(normalize_user_path(p), "Input file"),
+        "Input file",
+    )
+    for p in cfg["files"]
+]
 selected_hierarchy = cfg["selected_hierarchy"]
-specified_parent = cfg.get("specified_parent")
-if specified_parent in ("", "None", "none", False):
-    specified_parent = None
+specified_parent = cfg["specified_parent"]
 parent_hierarchy_level = cfg["parent_hierarchy_level"]
 value_column = cfg["value_column"]
 out_filename_prefix = cfg["out_filename_prefix"]
-out_path = resolve_config_path(cfg["out_path"], script_dir)
+out_path = require_absolute_path(normalize_user_path(cfg["out_path"]), "Output directory")
 out_format = cfg["out_format"]
 plot_title = cfg["plot_title"]
 id_system = cfg["id_system"]
-region_list = cfg.get("region_list", [])
+region_list = cfg["region_list"]
 
-repo_root = script_dir.parent
+# -------------------------
+# PATHS
+# -------------------------
+repo_root = script_path.parent.parent
 allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = repo_root / "files" / "CCF_v3_ontology.json"
 custom_hier_path = repo_root / "files"
@@ -62,8 +65,11 @@ if specified_parent:
 else:
     save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}.{out_format}"
 
+# -------------------------
+# MAIN
+# -------------------------
 n = len(files)
-value_name = resolve_value_name(value_column)
+value_name = metric_to_label(value_column)
 
 id_mapping, color_mapping, _acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
 child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
@@ -71,7 +77,7 @@ child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_h
 all_values = []
 for file in files:
     if id_system == "KimLab16bit":
-        data_file = load_and_prepare_data(file, allen2intfile)
+        data_file = load_and_prepare_data(file, allen2intfile, reverse=True)
     elif id_system == "OriginalAllen":
         data_file = load_and_prepare_data(file, allen2intfile, reverse=False)
     else:
@@ -92,9 +98,9 @@ for file in files:
     all_values.append(values_in_file)
 
 if n > 1:
-    value_dict, se_dict = average_value_dicts(all_values)
+    value_dict, error_dict = average_value_dicts(all_values)
 else:
-    value_dict, se_dict = all_values[0], None
+    value_dict, error_dict = all_values[0], None
 
 values = []
 standard_errors = []
@@ -108,8 +114,8 @@ for region_id, value in value_dict.items():
     parent_labels.append(child_to_parent_dict.get(region_id))
     values.append(value)
 
-    if se_dict:
-        standard_errors.append(se_dict.get(region_id))
+    if error_dict:
+        standard_errors.append(error_dict.get(region_id))
 
 for i in range(len(parent_labels) - 1):
     if parent_labels[i] == "":

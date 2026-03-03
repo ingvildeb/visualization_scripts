@@ -5,61 +5,60 @@ parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.append(str(parent_dir))
 
-from utils.io_helpers import load_script_config, normalize_user_path
+from utils.io_helpers import (
+    load_script_config,
+    normalize_user_path,
+    require_absolute_path,
+    require_file,
+)
 from utils.utils import (
     create_groupwise_barplot,
     get_descriptive_stats,
+    metric_to_label,
     perform_t_tests,
     prepare_groupwise_values_dict,
     prepare_hierarchy_info,
 )
 
 
-def resolve_config_path(path_like: str | Path, script_dir: Path) -> Path:
-    p = normalize_user_path(path_like)
-    return p if p.is_absolute() else (script_dir / p).resolve()
-
-
-def resolve_value_name(value_column: str) -> str:
-    if value_column == "cell_density":
-        return "Density"
-    if value_column == "cell_counted":
-        return "Cell number"
-    if value_column == "ROI_Volume_mm_3":
-        return "Region volume"
-    return value_column
-
-
+# -------------------------
+# CONFIG LOADING
+# -------------------------
 script_path = Path(__file__).resolve()
-script_dir = script_path.parent
 test_mode = False
 cfg = load_script_config(script_path, "barplots_per_group", test_mode=test_mode)
 
-ids_to_files_dict = {k: resolve_config_path(v, script_dir) for k, v in cfg["ids_to_files"].items()}
+# -------------------------
+# CONFIG PARAMETERS
+# -------------------------
+ids_to_files_dict = {
+    k: require_file(
+        require_absolute_path(normalize_user_path(v), f"Input file for {k}"),
+        f"Input file for {k}",
+    )
+    for k, v in cfg["ids_to_files"].items()
+}
 grouping = dict(cfg["grouping"])
 value_column = cfg["value_column"]
 selected_hierarchy = cfg["selected_hierarchy"]
-specified_parent = cfg.get("specified_parent")
-if specified_parent in ("", "None", "none", False):
-    specified_parent = None
+specified_parent = cfg["specified_parent"]
 parent_hierarchy_level = cfg["parent_hierarchy_level"]
-region_list = cfg.get("region_list", [])
+region_list = cfg["region_list"]
 out_filename_prefix = cfg["out_filename_prefix"]
-out_path = resolve_config_path(cfg["out_path"], script_dir)
+out_path = require_absolute_path(normalize_user_path(cfg["out_path"]), "Output directory")
 out_format = cfg["out_format"]
 plot_title = cfg["plot_title"]
-apply_t_test = bool(cfg["apply_t_test"])
-hatch_patterns = list(cfg["hatch_patterns"])
+apply_t_test = cfg["apply_t_test"]
+hatch_patterns = cfg["hatch_patterns"]
 id_system = cfg["id_system"]
-error_metric = str(cfg.get("error_metric", "se")).lower()
-error_mode = cfg.get("error_mode", None)
-if error_mode is None:
-    # Backward compatibility for older configs.
-    show_error_bars = bool(cfg.get("show_error_bars", False))
-    error_mode = "both" if show_error_bars else "dots"
-jitter_frac = float(cfg.get("jitter_frac", 0.0))
+error_metric = cfg["error_metric"]
+error_mode = cfg["error_mode"]
+jitter_frac = cfg["jitter_frac"]
 
-repo_root = script_dir.parent
+# -------------------------
+# PATHS
+# -------------------------
+repo_root = script_path.parent.parent
 allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 hierarchy_file = repo_root / "files" / "CCF_v3_ontology.json"
 custom_hier_path = repo_root / "files"
@@ -70,8 +69,11 @@ if specified_parent:
 else:
     save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}.{out_format}"
 
+# -------------------------
+# MAIN
+# -------------------------
 groups = list(dict.fromkeys(grouping.values()))
-value_name = resolve_value_name(value_column)
+value_name = metric_to_label(value_column)
 
 id_mapping, color_mapping, _acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
 

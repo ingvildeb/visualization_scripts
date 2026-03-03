@@ -1,8 +1,8 @@
-# Paths to input CSV files. Relative paths are resolved from this script folder.
+# Paths to input CSV files (absolute paths).
 files = [
-  '../files/counted_3d_cells.csv',
-  '../files/counted_3d_cells.csv',
-  '../files/counted_3d_cells.csv'
+  'C:\Users\YourName\path\to\sample_1_counted_3d_cells.csv',
+  'C:\Users\YourName\path\to\sample_2_counted_3d_cells.csv',
+  'C:\Users\YourName\path\to\sample_3_counted_3d_cells.csv'
 ]
 
 # Allen hierarchy level to plot.
@@ -21,7 +21,7 @@ value_column = 'cell_density'
 out_filename_prefix = 'Example_barplot_singleSamples'
 
 # Output directory.
-out_path = 'example_graphs'
+out_path = 'C:\Users\YourName\path\to\output'
 
 # Output file format.
 out_format = 'png'
