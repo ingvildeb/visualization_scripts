@@ -17,7 +17,7 @@ region_list = []
 out_filename_prefix = 'Example_heatmap'
 
 # Output directory.
-out_path = 'example_graphs'
+out_path = 'C:\Users\YourName\path\to\output'
 
 # Output file format.
 out_format = 'svg'
@@ -31,6 +31,9 @@ x_axis_title = 'Group'
 # Heatmap orientation: horizontal or vertical.
 orientation = 'horizontal'
 
+# Altair/Vega color scheme for heatmap values (e.g. plasma, viridis, inferno, magma, blues).
+color_scheme = 'plasma'
+
 # Input ROI ID system: KimLab16bit or OriginalAllen.
 id_system = 'KimLab16bit'
 
@@ -38,10 +41,10 @@ id_system = 'KimLab16bit'
 error_metric = 'se'
 
 [ids_to_files]
-'sample_1' = '../files/counted_3d_cells.csv'
-'sample_2' = '../files/counted_3d_cells.csv'
-'sample_3' = '../files/counted_3d_cells.csv'
-'sample_4' = '../files/counted_3d_cells.csv'
+'sample_1' = 'C:\Users\YourName\path\to\sample_1_counted_3d_cells.csv'
+'sample_2' = 'C:\Users\YourName\path\to\sample_2_counted_3d_cells.csv'
+'sample_3' = 'C:\Users\YourName\path\to\sample_3_counted_3d_cells.csv'
+'sample_4' = 'C:\Users\YourName\path\to\sample_4_counted_3d_cells.csv'
 
 [grouping]
 'sample_1' = 'C57'
