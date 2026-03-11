@@ -1,4 +1,5 @@
 # Paths to input CSV files (absolute paths).
+# Use one file for a single-animal plot, or multiple files to average across animals.
 files = [
   'C:\Users\YourName\path\to\sample_1_counted_3d_cells.csv',
   'C:\Users\YourName\path\to\sample_2_counted_3d_cells.csv',
@@ -8,7 +9,10 @@ files = [
 # Allen hierarchy level to plot.
 selected_hierarchy = 'CustomLevel6_gm'
 
-# Optional parent region filter (set to '' for no parent filter).
+# Optional parent region filter.
+# Set to '' for no parent filter. For fine hierarchies
+# (CustomLevel1_gm, CustomLevel2_gm, CustomLevel3_gm, FullHierarchy),
+# leaving this blank enables grouped x-axis labels by parent region.
 specified_parent = ''
 
 # Hierarchy table used to map child regions to parents.
@@ -33,12 +37,15 @@ plot_title = 'Cell density'
 id_system = 'KimLab16bit'
 
 # Error metric for variability: 'se' (standard error) or 'sd' (standard deviation).
+# Only used when more than one file is provided.
 error_metric = 'se'
 
 # Error visualization mode: bars, dots, both, or none.
+# Only used when more than one file is provided.
 error_mode = 'bars'
 
 # Horizontal jitter fraction for individual points (used with dots/both).
+# Only used when more than one file is provided.
 jitter_frac = 0.0
 
 # Optional explicit regions by name. Leave empty to use hierarchy selection.

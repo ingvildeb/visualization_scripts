@@ -44,7 +44,7 @@ files = [
     for p in cfg["files"]
 ]
 selected_hierarchy = cfg["selected_hierarchy"]
-specified_parent = cfg["specified_parent"]
+specified_parent = cfg["specified_parent"] or None
 parent_hierarchy_level = cfg["parent_hierarchy_level"]
 value_column = cfg["value_column"]
 out_filename_prefix = cfg["out_filename_prefix"]
@@ -53,9 +53,9 @@ out_format = cfg["out_format"]
 plot_title = cfg["plot_title"]
 id_system = cfg["id_system"]
 region_list = cfg["region_list"]
-error_metric = cfg["error_metric"]
-error_mode = cfg["error_mode"]
-jitter_frac = cfg["jitter_frac"]
+error_metric = cfg.get("error_metric", "se")
+error_mode = cfg.get("error_mode", "bars")
+jitter_frac = cfg.get("jitter_frac", 0.0)
 
 # -------------------------
 # PATHS
@@ -127,17 +127,23 @@ for i in range(len(parent_labels) - 1):
     if parent_labels[i] == "":
         parent_labels[i] = parent_labels[i + 1]
 
-error_mode = str(error_mode).lower()
-if error_mode not in {"bars", "dots", "both", "none"}:
-    raise ValueError("error_mode must be one of: bars, dots, both, none")
-
-show_error_bars = error_mode in {"bars", "both"}
-show_dots = error_mode in {"dots", "both"}
-yerr_values = error_values if (n > 1 and show_error_bars) else None
-
 fig, ax = plt.subplots(figsize=(35, 15))
 x = np.arange(len(region_names))
 bar_width = 0.8
+
+show_error_bars = False
+show_dots = False
+yerr_values = None
+
+if n > 1:
+    error_mode = str(error_mode).lower()
+    if error_mode not in {"bars", "dots", "both", "none"}:
+        raise ValueError("error_mode must be one of: bars, dots, both, none")
+
+    show_error_bars = error_mode in {"bars", "both"}
+    show_dots = error_mode in {"dots", "both"}
+    yerr_values = error_values if show_error_bars else None
+
 ax.bar(x, values, yerr=yerr_values, color=region_colors, width=bar_width, capsize=3 if yerr_values is not None else 0)
 
 if show_dots:
@@ -159,7 +165,7 @@ ax.set_title(plot_title, fontsize=20)
 ax.set_xticks(x)
 ax.set_xticklabels(region_names, rotation=45, ha="right", fontsize=16)
 
-if selected_hierarchy in ["CustomLevel1_gm", "CustomLevel2_gm", "CustomLevel3_gm", "FullHierarchy"] and specified_parent is None:
+if selected_hierarchy in ["CustomLevel1_gm", "CustomLevel2_gm", "CustomLevel3_gm", "FullHierarchy"] and not specified_parent:
     ax.set_xticklabels([])
     ax.tick_params(axis="x", which="both", bottom=False, top=False)
 

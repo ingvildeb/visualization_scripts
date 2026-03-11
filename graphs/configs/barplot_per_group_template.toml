@@ -4,7 +4,10 @@ value_column = 'cell_density'
 # Allen hierarchy level to plot.
 selected_hierarchy = 'CustomLevel6_gm'
 
-# Optional parent region filter (set to '' for no parent filter).
+# Optional parent region filter.
+# Set to '' for no parent filter. For fine hierarchies
+# (CustomLevel1_gm, CustomLevel2_gm, CustomLevel3_gm, FullHierarchy),
+# leaving this blank enables grouped x-axis labels by parent region.
 specified_parent = ''
 
 # Hierarchy table used to map child regions to parents.
