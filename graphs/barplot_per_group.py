@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
@@ -71,6 +72,7 @@ if specified_parent:
     save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_{value_column}.{out_format}"
 else:
     save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}.{out_format}"
+stats_save_path = save_path.with_name(f"{save_path.stem}_descriptive_stats.csv")
 
 # -------------------------
 # MAIN
@@ -129,6 +131,24 @@ if apply_t_test:
 region_names = list(avg_values_to_region_dict.keys())
 region_name_map = {region: id_mapping[region] for region in region_names}
 region_colors = [f"#{color_mapping.get(region)}" for region in region_names]
+error_label = "SE" if error_metric == "se" else "SD"
+
+stats_rows = []
+for region in region_names:
+    for group in groups:
+        region_values = np.asarray(all_individual_values.get(region, {}).get(group, []), dtype=float)
+        stats_rows.append(
+            {
+                "Region": region_name_map.get(region, region),
+                "Group": group,
+                "Value": avg_values_to_region_dict.get(region, {}).get(group, np.nan),
+                "ErrorMetric": error_label,
+                "ErrorValue": error_to_region_group_dict.get(region, {}).get(group, np.nan),
+                "N": int(region_values.size),
+            }
+        )
+
+pd.DataFrame(stats_rows).to_csv(stats_save_path, index=False)
 
 num_groups = len(groups)
 error_mode = str(error_mode).lower()
