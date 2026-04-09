@@ -14,7 +14,10 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.atlas_data_prep import prepare_groupwise_values_dict, prepare_hierarchy_info
+from utils.atlas_data_prep_atlaslevels import (
+    prepare_groupwise_values_dict_atlaslevels,
+    prepare_hierarchy_info_atlaslevels,
+)
 from utils.stats import get_descriptive_stats
 
 
@@ -47,7 +50,6 @@ grouping = dict(cfg["grouping"])
 value_column = cfg["value_column"]
 selected_hierarchy = cfg["selected_hierarchy"]
 specified_parent = cfg["specified_parent"]
-parent_hierarchy_level = cfg["parent_hierarchy_level"]
 region_list = cfg["region_list"]
 out_filename_prefix = cfg["out_filename_prefix"]
 out_path = require_absolute_path(normalize_user_path(cfg["out_path"]), "Output directory")
@@ -64,49 +66,40 @@ color_scheme = cfg["color_scheme"]
 # -------------------------
 repo_root = script_path.parent.parent
 allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
-hierarchy_file = repo_root / "files" / "CCF_v3_ontology.json"
-custom_hier_path = repo_root / "files"
 out_path.mkdir(parents=True, exist_ok=True)
+selection_label = "CustomRegionList" if region_list else selected_hierarchy
 
 if specified_parent:
-    save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{specified_parent}_{value_column}_{orientation}.{out_format}"
+    save_path = out_path / f"{out_filename_prefix}_{selection_label}_{specified_parent}_{value_column}_{orientation}.{out_format}"
 else:
-    save_path = out_path / f"{out_filename_prefix}_{selected_hierarchy}_{value_column}_{orientation}.{out_format}"
+    save_path = out_path / f"{out_filename_prefix}_{selection_label}_{value_column}_{orientation}.{out_format}"
 
 # -------------------------
 # MAIN
 # -------------------------
 groups = ordered_unique(grouping.values())
 
-id_mapping, _color_mapping, _acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
+_ontology, _bundle, id_mapping, _color_mapping, _acronym_mapping, _hierarchy_regions = prepare_hierarchy_info_atlaslevels()
 
 if id_system == "KimLab16bit":
-    all_individual_values = prepare_groupwise_values_dict(
+    all_individual_values, _bundle = prepare_groupwise_values_dict_atlaslevels(
         ids_to_files_dict,
         grouping,
         value_column,
         allen2intfile,
         selected_hierarchy,
         specified_parent,
-        hierarchy_regions,
-        custom_hier_path,
-        parent_hierarchy_level,
-        id_mapping,
         region_list,
         reverse=True,
     )
 elif id_system == "OriginalAllen":
-    all_individual_values = prepare_groupwise_values_dict(
+    all_individual_values, _bundle = prepare_groupwise_values_dict_atlaslevels(
         ids_to_files_dict,
         grouping,
         value_column,
         allen2intfile,
         selected_hierarchy,
         specified_parent,
-        hierarchy_regions,
-        custom_hier_path,
-        parent_hierarchy_level,
-        id_mapping,
         region_list,
         reverse=False,
     )

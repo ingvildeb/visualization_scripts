@@ -48,6 +48,9 @@ Heatmaps can be a good way to plot relative differences between many groups acro
 ## Getting started
 It is advisable to set up a specific environment in which to run the scripts from this repository. You can install all required packages from the requirements.txt file provided in this repository.
 
+The current atlas-aware workflow in this repo depends on `atlaslevels >= 0.2.0`.
+If you are using the sibling `atlaslevels` repo locally, reinstall it in your environment after updates with `python -m pip install -e .`.
+
 ## Format requirements
 It is essential that your data are formatted correctly for these scripts to work. See **files > counted_3d_cells.csv** for an example input file.
  - Data should be provided in .csv format, with each region of the brain as a row and the data to be plotted in column(s).

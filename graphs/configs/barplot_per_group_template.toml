@@ -1,20 +1,15 @@
-# Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
-value_column = 'cell_density'
-
 # Allen hierarchy level to plot.
 selected_hierarchy = 'CustomLevel6_gm'
 
 # Optional parent region filter.
-# Set to '' for no parent filter. For fine hierarchies
-# (CustomLevel1_gm, CustomLevel2_gm, CustomLevel3_gm, FullHierarchy),
-# leaving this blank enables grouped x-axis labels by parent region.
+# Set to '' for no parent filter.
 specified_parent = ''
-
-# Hierarchy table used to map child regions to parents.
-parent_hierarchy_level = 'Allen_STlevel_5'
 
 # Optional explicit regions by name. Leave empty to use hierarchy selection.
 region_list = []
+
+# Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
+value_column = 'cell_density'
 
 # Prefix for output filename.
 out_filename_prefix = 'Example_barplot_multiSamples'
