@@ -1,0 +1,107 @@
+# Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
+value_column = 'cell_density'
+
+# Allen hierarchy level to plot.
+selected_hierarchy = 'CustomLevel1_gm'
+
+# Optional parent region filter (set to '' for no parent filter).
+specified_parent = ''
+
+# Hierarchy table used to map child regions to parents.
+parent_hierarchy_level = 'Allen_STlevel_5'
+
+# Optional explicit regions by name. Leave empty to use hierarchy selection.
+region_list = []
+
+# Prefix for output filename.
+out_filename_prefix = 'Example_differential_heatmap'
+
+# Output directory.
+out_path = 'C:\Users\YourName\path\to\output'
+
+# Output file format.
+out_format = 'svg'
+
+# Plot title.
+plot_title = 'Percentage change from control'
+
+# X-axis title (group descriptor such as age/genotype/treatment).
+x_axis_title = 'Group'
+
+# Heatmap orientation: horizontal or vertical.
+orientation = 'horizontal'
+
+# Input ROI ID system: KimLab16bit or OriginalAllen.
+id_system = 'KimLab16bit'
+
+# Error metric for variability column: 'se' (standard error) or 'sd' (standard deviation).
+error_metric = 'se'
+
+# Group to use as the baseline for differential values.
+control_group = 'C57'
+
+# Differential metric. Currently only percent_change is supported:
+# ((group average - control average) / control average) * 100.
+differential_metric = 'percent_change'
+
+# Whether to include the control group in the figure.
+include_control = true
+
+# How to display the control group when include_control is true:
+# raw = show control raw averages with a separate sequential color scale.
+# zero = include control in the differential heatmap as 0% change.
+control_display = 'raw'
+
+# How to handle regions where the control average is zero or too close to zero.
+# Currently only nan is supported.
+zero_control_policy = 'nan'
+
+# Minimum absolute control average allowed as a percent-change denominator.
+# Keep at 0 to set only true zero controls to NaN. Increase if tiny baselines are unstable.
+control_minimum_for_percent_change = 0
+
+# Altair/Vega color scheme for differential values. Use a diverging scheme centered at 0.
+change_color_scheme = 'redblue'
+
+# Reverse redblue so negative changes are blue and positive changes are red.
+change_color_reverse = true
+
+# Percent-change color scale domain:
+# symmetric_fixed uses [-change_color_domain_percent, +change_color_domain_percent].
+# symmetric_data uses a symmetric domain based on this plot's largest absolute change.
+change_color_domain_mode = 'symmetric_fixed'
+change_color_domain_percent = 50
+
+# Altair/Vega color scheme for raw control values.
+control_color_scheme = 'viridis'
+
+# Colorbar length in pixels. Keeping this fixed prevents legends from stretching
+# differently when the control and differential panels have different heights.
+legend_gradient_length = 120
+
+# Space between each colorbar and its small invisible legend anchor.
+legend_offset = 8
+
+# Vertical spacing between the control and differential colorbars.
+legend_stack_spacing = 28
+
+# Horizontal spacing between the colorbar column and the heatmaps.
+legend_chart_spacing = 12
+
+# Width of one group column in vertical mode.
+group_cell_width = 90
+
+# Height of one group row in horizontal mode.
+group_cell_height = 35
+
+[ids_to_files]
+'sample_1' = 'C:\Users\YourName\path\to\sample_1_counted_3d_cells.csv'
+'sample_2' = 'C:\Users\YourName\path\to\sample_2_counted_3d_cells.csv'
+'sample_3' = 'C:\Users\YourName\path\to\sample_3_counted_3d_cells.csv'
+'sample_4' = 'C:\Users\YourName\path\to\sample_4_counted_3d_cells.csv'
+
+[grouping]
+'sample_1' = 'C57'
+'sample_2' = 'C57'
+'sample_3' = 'Mut'
+'sample_4' = 'Mut'
