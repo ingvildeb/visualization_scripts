@@ -46,7 +46,33 @@ Heatmaps can be a good way to plot relative differences between many groups acro
 *Example horizontal atlas plate heatmap at CustomLevel1*
 
 ## Getting started
-It is advisable to set up a specific environment in which to run the scripts from this repository. You can install all required packages from the requirements.txt file provided in this repository.
+It is advisable to set up a specific environment in which to run the scripts from this repository.
+
+1. Clone or download this repository to your local machine.
+2. Open a terminal in the repository folder.
+3. Create a Conda environment:
+
+```bash
+conda create -n visualization_scripts python=3.12
+```
+
+4. Activate the environment:
+
+```bash
+conda activate visualization_scripts
+```
+
+5. Install the standard dependencies used by the main plotting scripts in `graphs/`:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+6. If you also want to use the Brainglobe atlas heatmap script in `brainglobe/`, install the optional Brainglobe dependencies:
+
+```bash
+python -m pip install -r requirements-brainglobe.txt
+```
 
 ## Format requirements
 It is essential that your data are formatted correctly for these scripts to work. See **files > counted_3d_cells.csv** for an example input file.

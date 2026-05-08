@@ -11,12 +11,12 @@ selected_hierarchy = 'CustomLevel6_gm'
 
 # Optional parent region filter.
 # Set to '' for no parent filter. For fine hierarchies
-# (CustomLevel1_gm, CustomLevel2_gm, CustomLevel3_gm, FullHierarchy),
+# (CustomLevel1_gm, CustomLevel2_gm, CustomLevel3_gm),
 # leaving this blank enables grouped x-axis labels by parent region.
 specified_parent = ''
 
-# Hierarchy table used to map child regions to parents.
-parent_hierarchy_level = 'Allen_STlevel_5'
+# Optional explicit regions by name. Leave empty to use hierarchy selection.
+region_list = []
 
 # Metric to plot: cell_counted, cell_density, or ROI_Volume_mm_3.
 value_column = 'cell_density'
@@ -47,6 +47,3 @@ error_mode = 'bars'
 # Horizontal jitter fraction for individual points (used with dots/both).
 # Only used when more than one file is provided.
 jitter_frac = 0.0
-
-# Optional explicit regions by name. Leave empty to use hierarchy selection.
-region_list = []

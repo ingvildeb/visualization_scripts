@@ -6,23 +6,24 @@ import tifffile
 from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
-import pandas as pd
 
 parent_dir = Path(__file__).resolve().parent.parent
 if str(parent_dir) not in sys.path:
     sys.path.append(str(parent_dir))
 
-from utils.atlas_data_prep import prepare_hierarchy_info
+from atlaslevels import load_preset_id_map, load_preset_ontology
 from utils.atlas_render import atlas_to_svg, convert_colors, create_grayscale_mapping
 
 # Give the input folder to your subject
-input_folders = [Path(r"M:\SmartSPIM_Data\2025\2025_03\2025_03_20\20250320_17_02_13_NB_CS0290_M_P533_C57_LAS_488Lectin_561NeuN_640Iba1_4x_4umstep_Destripe_DONE\\"),
+input_folders = [Path(r"Z:\LSFM\2026\2026_01\2026_01_28\20260128_10_02_36_EH_100175_M_P66_B6NJ_LAS_488Lectin_561NeuN_640Iba1_4x_4umstep_Destripe_DONE\\"),
                  
                  ]
 
+base_path = Path(r"C:\Users\SmartBrain_32C_TR\Documents\GitHub\standard_test_data\visualization_scripts\atlas_maps")
+
 # Give the naming convention for your MIP folder
 # This should be identical for all the subjects added to input_folder
-mip_folder_name = "Ex_561_Ch1_stitched_MIP20um"
+mip_folder_name = "Ex_561_Ch1_stitched_MIP20um_min0_max99.9"
 
 # Select a region of interest, the section will be selected to be in the middle of this regions'
 # dorsoventral extent
@@ -40,10 +41,13 @@ roi_image = True
 ## MAIN CODE, do not edit
 
 # Path setup
-base_path = parent_dir
-allen2intfile = base_path / "files" / "CCFv3_OntologyStructure_u16.xlsx"
-hierarchy_file = base_path / "files" / "CCF_v3_ontology.json"
-custom_hier_path = base_path / "files"
+ontology = load_preset_ontology("allen_ccfv3")
+allen_to_kimlab = load_preset_id_map("allen_ccfv3_allen_to_kimlab16bit")
+
+color_mapping = {}
+for node_id, node in ontology.nodes.items():
+    kimlab_id = allen_to_kimlab.convert(node_id)
+    color_mapping[kimlab_id] = node.color.lstrip("#")
 
 for input_folder in input_folders:
     subject_id = input_folder.stem.split("_")[5]
@@ -52,19 +56,17 @@ for input_folder in input_folders:
     all_mips = list(mip_path.glob("*.tif"))
 
     # Prepare data
-    allen2int = pd.read_excel(allen2intfile)
-    color_mapping = dict(zip(allen2int['id_16bit'], allen2int['color_hex_triplet']))
-    id_mapping, _, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
-
-
     # Get the ID of the user selected ROI
-    roi_id = [key for key, value in id_mapping.items() if value == roi]
+    try:
+        roi_allen_id = ontology.resolve_name(roi)
+    except Exception:
+        roi_allen_id = None
 
     # Check that the ROI exists
-    if roi_id == []:
+    if roi_allen_id is None:
         print("No ID corresponding to the ROI name, check spelling")
     else:
-        roi_id = roi_id[0]
+        roi_id = allen_to_kimlab.convert(roi_allen_id)
 
     # Load the transformed atlas volume and read out the top and bottom slice coordinates for the ROI
     nifti_img = nib.load(atlas_path)

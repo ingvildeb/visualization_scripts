@@ -1,172 +1,160 @@
-import json
-
 import pandas as pd
 
-
-def get_mappings(data, key_property, value_property, default_value=None):
-    mapping = {}
-
-    def recursive_collect(node):
-        key = node.get(key_property)
-        value = node.get(value_property, default_value)
-        if key is not None and value is not None:
-            mapping[key] = value
-
-        for child in node.get("children", []):
-            recursive_collect(child)
-
-    for entry in data["msg"]:
-        recursive_collect(entry)
-
-    return mapping
+from atlaslevels import (
+    convert_dataframe_ids,
+    load_preset_bundle,
+    load_preset_id_map,
+    load_preset_ontology,
+)
 
 
-def format_custom_regions(file, id_mapping):
-    read_file = pd.read_excel(file)
-    regions = read_file.columns.tolist()
-    regions.remove("Custom brain region")
-    if "root" in regions:
-        regions.remove("root")
-
-    region_ids = []
-    for name in regions:
-        region_id = [key for key, value in id_mapping.items() if value == name]
-        if region_id:
-            region_ids.append(region_id[0])
-
-    return region_ids
+SUPPORTED_GM_LEVELS = {
+    "CustomLevel1_gm",
+    "CustomLevel2_gm",
+    "CustomLevel3_gm",
+    "CustomLevel4_gm",
+    "CustomLevel5_gm",
+    "CustomLevel6_gm",
+    "CustomLevel7_gm",
+}
 
 
-def prepare_hierarchy_info(hierarchy_file, custom_hier_path):
-    with open(hierarchy_file, "r") as file:
-        json_data = json.load(file)
-
-    id_mapping = get_mappings(json_data, "id", "name")
-    color_mapping = get_mappings(json_data, "id", "color_hex_triplet")
-    acronym_mapping = get_mappings(json_data, "id", "acronym")
-
-    hierarchy_names = [
-        "Allen_STlevel_5",
-        "CustomLevel1_gm",
-        "CustomLevel1_wm",
-        "CustomLevel2_gm",
-        "CustomLevel3_gm",
-        "CustomLevel4_gm",
-        "CustomLevel5_gm",
-        "CustomLevel6_gm",
-        "CustomLevel7_gm",
-        "FullHierarchy",
-    ]
-
-    hierarchy_paths = {name: custom_hier_path / f"{name}.xlsx" for name in hierarchy_names}
-
-    hierarchy_regions = {name: format_custom_regions(path, id_mapping) for name, path in hierarchy_paths.items()}
-
-    return id_mapping, color_mapping, acronym_mapping, hierarchy_regions
+def load_allen_gm_context():
+    ontology = load_preset_ontology("allen_ccfv3")
+    bundle = load_preset_bundle("allen_gm")
+    return ontology, bundle
 
 
-def create_child_to_parent_mapping(custom_hier_path, hierarchy_name):
-    grouping_data = pd.read_excel(custom_hier_path / f"{hierarchy_name}.xlsx")
-    grouping_data = grouping_data.drop(index=grouping_data.index[0])
-    grouping_data = grouping_data.drop(columns=grouping_data.columns[0])
-    child_to_parent_dict = {}
-
-    for parent_region in grouping_data.columns:
-        children = grouping_data[parent_region].dropna()
-        for child in children:
-            child_to_parent_dict[child] = parent_region
-
-    return child_to_parent_dict
+def get_level_region_ids(bundle, level_name):
+    return list(bundle.levels[level_name].parents)
 
 
-def create_reverse_id_mapping(allen2intfile):
-    allen2int = pd.read_excel(allen2intfile)
-    allen2int_dict = dict(zip(allen2int.iloc[:, 0], allen2int.iloc[:, 1]))
-    reverse_id_mapping = {v: k for k, v in allen2int_dict.items()}
-    return reverse_id_mapping
+def build_ontology_mappings(ontology):
+    id_mapping = {node_id: node.name for node_id, node in ontology.nodes.items()}
+    color_mapping = {node_id: node.color.lstrip("#") for node_id, node in ontology.nodes.items()}
+    acronym_mapping = {node_id: node.acronym for node_id, node in ontology.nodes.items()}
+    return id_mapping, color_mapping, acronym_mapping
 
 
-def load_and_prepare_data(file_path, allen2intfile, reverse=True):
+def prepare_hierarchy_info_atlaslevels():
+    ontology, bundle = load_allen_gm_context()
+    id_mapping, color_mapping, acronym_mapping = build_ontology_mappings(ontology)
+    hierarchy_regions = {
+        level_name: get_level_region_ids(bundle, level_name)
+        for level_name in SUPPORTED_GM_LEVELS
+    }
+    return ontology, bundle, id_mapping, color_mapping, acronym_mapping, hierarchy_regions
+
+
+def load_and_prepare_data(file_path, reverse=True):
     data_file = pd.read_csv(file_path)
 
-    if reverse is True:
-        reverse_id_mapping = create_reverse_id_mapping(allen2intfile)
-        data_file["ROI_id"] = data_file["ROI_id"].map(reverse_id_mapping).fillna(data_file["ROI_id"])
+    if reverse:
+        reverse_id_map = load_preset_id_map("allen_ccfv3_allen_to_kimlab16bit").invert()
+        data_file = convert_dataframe_ids(data_file, "ROI_id", reverse_id_map, copy=False)
 
     return data_file
 
 
-def collect_values_directly(data_file, values_column, region_list, id_mapping):
+def collect_values_directly(data_file, values_column, region_ids):
     all_values = {}
 
-    for region in region_list:
-        region_id = [key for key, val in id_mapping.items() if val == region]
-        region_id = region_id[0]
-        volume_value = data_file.loc[data_file["ROI_id"] == region_id, "ROI_Volume_mm_3"].values[0]
+    for region_id in region_ids:
+        row = data_file.loc[data_file["ROI_id"] == region_id]
+        if row.empty:
+            continue
 
+        volume_value = row["ROI_Volume_mm_3"].values[0]
         if volume_value != 0:
-            value = data_file.loc[data_file["ROI_id"] == region_id, values_column].values[0]
-            all_values[region_id] = value
+            all_values[region_id] = row[values_column].values[0]
 
     return all_values
 
 
-def collect_values_by_hierarchy(
-    data_file, values_column, hierarchy_regions, selected_hierarchy, child_to_parent_dict, specified_parent=""
+def resolve_region_list(ontology, region_list):
+    resolved = []
+    for region in region_list:
+        resolved.append(ontology.resolve_name(region) if isinstance(region, str) else region)
+    return resolved
+
+
+def collect_values_by_hierarchy_atlaslevels(
+    data_file,
+    values_column,
+    bundle,
+    selected_hierarchy,
+    specified_parent="",
 ):
     all_values = {}
+    selected_ids = get_level_region_ids(bundle, selected_hierarchy)
+    specified_parent_id = None
 
     if specified_parent:
-        for region_id in hierarchy_regions.get(selected_hierarchy, []):
-            parent_name = child_to_parent_dict.get(region_id, None)
-            volume_value = data_file.loc[data_file["ROI_id"] == region_id, "ROI_Volume_mm_3"].values[0]
-            if parent_name == specified_parent and volume_value != 0:
-                value = data_file.loc[data_file["ROI_id"] == region_id, values_column].values[0]
-                all_values[region_id] = value
-            else:
-                continue
-    else:
-        for region_id in hierarchy_regions.get(selected_hierarchy, []):
-            volume_value = data_file.loc[data_file["ROI_id"] == region_id, "ROI_Volume_mm_3"].values[0]
-            if volume_value != 0:
-                value = data_file.loc[data_file["ROI_id"] == region_id, values_column].values[0]
-                all_values[region_id] = value
+        specified_parent_id = bundle.ontology.resolve_name(specified_parent)
+        if specified_parent_id in selected_ids:
+            raise ValueError(
+                f"specified_parent '{specified_parent}' is itself included in {selected_hierarchy}. "
+                "specified_parent must be coarser than the selected hierarchy."
+            )
+
+    for region_id in selected_ids:
+        row = data_file.loc[data_file["ROI_id"] == region_id]
+        if row.empty:
+            continue
+
+        volume_value = row["ROI_Volume_mm_3"].values[0]
+        if volume_value == 0:
+            continue
+
+        if specified_parent_id is not None and not bundle.ontology.is_ancestor(specified_parent_id, region_id):
+            continue
+
+        all_values[region_id] = row[values_column].values[0]
 
     return all_values
 
 
-def prepare_groupwise_values_dict(
+def build_parent_label_mapping(bundle, selected_hierarchy, parent_hierarchy_level):
+    if parent_hierarchy_level not in SUPPORTED_GM_LEVELS:
+        raise ValueError(
+            "For the atlaslevels-backed migration path, parent_hierarchy_level must be one of the GM levels: "
+            f"{sorted(SUPPORTED_GM_LEVELS)}"
+        )
+
+    mapping = {}
+    for region_id in get_level_region_ids(bundle, selected_hierarchy):
+        mapped_parent = bundle.map_region_to_level_parent(region_id, parent_hierarchy_level)
+        mapping[region_id] = bundle.ontology.get_name(mapped_parent) if mapped_parent is not None else None
+    return mapping
+
+
+def prepare_groupwise_values_dict_atlaslevels(
     ids_to_files_dict,
     grouping,
     value_column,
-    allen2intfile,
     selected_hierarchy,
     specified_parent,
-    hierarchy_regions,
-    custom_hier_path,
-    parent_hierarchy_level,
-    id_mapping,
-    region_list=[],
+    region_list=None,
     reverse=True,
 ):
+    ontology, bundle = load_allen_gm_context()
     all_individual_values = {}
+    region_list = region_list or []
+    resolved_region_list = resolve_region_list(ontology, region_list) if region_list else []
 
     for sample_id, file in ids_to_files_dict.items():
         id_group = grouping.get(sample_id)
-        data_file = load_and_prepare_data(file, allen2intfile, reverse)
+        data_file = load_and_prepare_data(file, reverse)
 
-        child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, parent_hierarchy_level)
-
-        if region_list:
-            values_in_file = collect_values_directly(data_file, value_column, region_list, id_mapping)
+        if resolved_region_list:
+            values_in_file = collect_values_directly(data_file, value_column, resolved_region_list)
         else:
-            values_in_file = collect_values_by_hierarchy(
-                data_file,
-                value_column,
-                hierarchy_regions,
-                selected_hierarchy,
-                child_to_parent_dict,
-                specified_parent,
+            values_in_file = collect_values_by_hierarchy_atlaslevels(
+                data_file=data_file,
+                values_column=value_column,
+                bundle=bundle,
+                selected_hierarchy=selected_hierarchy,
+                specified_parent=specified_parent,
             )
 
         for region_id, value in values_in_file.items():
@@ -176,4 +164,4 @@ def prepare_groupwise_values_dict(
                 all_individual_values[region_id][id_group] = []
             all_individual_values[region_id][id_group].append(value)
 
-    return all_individual_values
+    return all_individual_values, bundle

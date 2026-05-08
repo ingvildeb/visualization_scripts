@@ -15,10 +15,9 @@ from utils.io_helpers import (
     require_file,
 )
 from utils.atlas_data_prep import (
-    collect_values_by_hierarchy,
-    create_child_to_parent_mapping,
+    collect_values_by_hierarchy_atlaslevels,
     load_and_prepare_data,
-    prepare_hierarchy_info,
+    prepare_hierarchy_info_atlaslevels,
 )
 from utils.stats import average_value_dicts
 
@@ -52,9 +51,6 @@ id_system = cfg["id_system"]
 # PATHS
 # -------------------------
 repo_root = script_path.parent.parent
-allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
-hierarchy_file = repo_root / "files" / "CCF_v3_ontology.json"
-custom_hier_path = repo_root / "files"
 out_path = out_path / f"{out_filename_prefix}_{orientation}_atlasHeatmaps"
 out_path.mkdir(parents=True, exist_ok=True)
 
@@ -62,25 +58,24 @@ out_path.mkdir(parents=True, exist_ok=True)
 # MAIN
 # -------------------------
 value_column = "cell_density"
+_ontology, bundle, id_mapping, _color_mapping, acronym_mapping, _hierarchy_regions = (
+    prepare_hierarchy_info_atlaslevels()
+)
 
 all_values = []
 for file in files:
     if id_system == "KimLab16bit":
-        data_file = load_and_prepare_data(file, allen2intfile)
+        data_file = load_and_prepare_data(file)
     elif id_system == "OriginalAllen":
-        data_file = load_and_prepare_data(file, allen2intfile, reverse=False)
+        data_file = load_and_prepare_data(file, reverse=False)
     else:
         raise RuntimeError("ID system not recognized. Must be KimLab16bit or OriginalAllen")
 
-    id_mapping, _color_mapping, acronym_mapping, hierarchy_regions = prepare_hierarchy_info(hierarchy_file, custom_hier_path)
-    child_to_parent_dict = create_child_to_parent_mapping(custom_hier_path, "Allen_STlevel_5")
-
-    values_in_file = collect_values_by_hierarchy(
+    values_in_file = collect_values_by_hierarchy_atlaslevels(
         data_file,
         value_column,
-        hierarchy_regions,
+        bundle,
         selected_hierarchy,
-        child_to_parent_dict,
     )
     all_values.append(values_in_file)
 
