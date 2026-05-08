@@ -13,7 +13,7 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.atlas_data_prep_atlaslevels import (
+from utils.atlas_data_prep import (
     build_parent_label_mapping,
     collect_values_by_hierarchy_atlaslevels,
     collect_values_directly,
@@ -109,7 +109,6 @@ jitter_frac = cfg.get("jitter_frac", 0.0)
 # PATHS
 # -------------------------
 repo_root = script_path.parent.parent
-allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 out_path.mkdir(parents=True, exist_ok=True)
 selection_label = "CustomRegionList" if region_list else selected_hierarchy
 
@@ -130,9 +129,9 @@ parent_label_mapping = build_parent_label_mapping(bundle, selected_hierarchy, GR
 all_values = []
 for file in files:
     if id_system == "KimLab16bit":
-        data_file = load_and_prepare_data(file, allen2intfile, reverse=True)
+        data_file = load_and_prepare_data(file, reverse=True)
     elif id_system == "OriginalAllen":
-        data_file = load_and_prepare_data(file, allen2intfile, reverse=False)
+        data_file = load_and_prepare_data(file, reverse=False)
     else:
         raise RuntimeError("ID system not recognized. Must be KimLab16bit or OriginalAllen")
 

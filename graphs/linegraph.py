@@ -16,7 +16,7 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.atlas_data_prep_atlaslevels import (
+from utils.atlas_data_prep import (
     prepare_groupwise_values_dict_atlaslevels,
     prepare_hierarchy_info_atlaslevels,
 )
@@ -73,7 +73,6 @@ split_markers = cfg["split_markers"]
 # PATHS
 # -------------------------
 repo_root = script_path.parent.parent
-allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 out_path.mkdir(parents=True, exist_ok=True)
 selection_label = "CustomRegionList" if region_list else selected_hierarchy
 
@@ -113,7 +112,6 @@ if id_system == "KimLab16bit":
         ids_to_files_dict,
         combined_grouping,
         value_column,
-        allen2intfile,
         selected_hierarchy,
         specified_parent,
         region_list,
@@ -124,7 +122,6 @@ elif id_system == "OriginalAllen":
         ids_to_files_dict,
         combined_grouping,
         value_column,
-        allen2intfile,
         selected_hierarchy,
         specified_parent,
         region_list,

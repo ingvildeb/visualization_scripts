@@ -14,7 +14,7 @@ from utils.io_helpers import (
     require_absolute_path,
     require_file,
 )
-from utils.atlas_data_prep_atlaslevels import (
+from utils.atlas_data_prep import (
     collect_values_by_hierarchy_atlaslevels,
     load_and_prepare_data,
     prepare_hierarchy_info_atlaslevels,
@@ -51,7 +51,6 @@ id_system = cfg["id_system"]
 # PATHS
 # -------------------------
 repo_root = script_path.parent.parent
-allen2intfile = repo_root / "files" / "CCFv3_OntologyStructure_u16.xlsx"
 out_path = out_path / f"{out_filename_prefix}_{orientation}_atlasHeatmaps"
 out_path.mkdir(parents=True, exist_ok=True)
 
@@ -66,9 +65,9 @@ _ontology, bundle, id_mapping, _color_mapping, acronym_mapping, _hierarchy_regio
 all_values = []
 for file in files:
     if id_system == "KimLab16bit":
-        data_file = load_and_prepare_data(file, allen2intfile)
+        data_file = load_and_prepare_data(file)
     elif id_system == "OriginalAllen":
-        data_file = load_and_prepare_data(file, allen2intfile, reverse=False)
+        data_file = load_and_prepare_data(file, reverse=False)
     else:
         raise RuntimeError("ID system not recognized. Must be KimLab16bit or OriginalAllen")
 

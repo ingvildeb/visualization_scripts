@@ -25,6 +25,10 @@ def load_allen_gm_context():
     return ontology, bundle
 
 
+def get_level_region_ids(bundle, level_name):
+    return list(bundle.levels[level_name].parents)
+
+
 def build_ontology_mappings(ontology):
     id_mapping = {node_id: node.name for node_id, node in ontology.nodes.items()}
     color_mapping = {node_id: node.color.lstrip("#") for node_id, node in ontology.nodes.items()}
@@ -36,13 +40,13 @@ def prepare_hierarchy_info_atlaslevels():
     ontology, bundle = load_allen_gm_context()
     id_mapping, color_mapping, acronym_mapping = build_ontology_mappings(ontology)
     hierarchy_regions = {
-        level_name: bundle.get_selected_region_ids(level_name)
+        level_name: get_level_region_ids(bundle, level_name)
         for level_name in SUPPORTED_GM_LEVELS
     }
     return ontology, bundle, id_mapping, color_mapping, acronym_mapping, hierarchy_regions
 
 
-def load_and_prepare_data(file_path, allen2intfile, reverse=True):
+def load_and_prepare_data(file_path, reverse=True):
     data_file = pd.read_csv(file_path)
 
     if reverse:
@@ -82,7 +86,7 @@ def collect_values_by_hierarchy_atlaslevels(
     specified_parent="",
 ):
     all_values = {}
-    selected_ids = bundle.get_selected_region_ids(selected_hierarchy)
+    selected_ids = get_level_region_ids(bundle, selected_hierarchy)
     specified_parent_id = None
 
     if specified_parent:
@@ -118,7 +122,7 @@ def build_parent_label_mapping(bundle, selected_hierarchy, parent_hierarchy_leve
         )
 
     mapping = {}
-    for region_id in bundle.get_selected_region_ids(selected_hierarchy):
+    for region_id in get_level_region_ids(bundle, selected_hierarchy):
         mapped_parent = bundle.map_region_to_level_parent(region_id, parent_hierarchy_level)
         mapping[region_id] = bundle.ontology.get_name(mapped_parent) if mapped_parent is not None else None
     return mapping
@@ -128,7 +132,6 @@ def prepare_groupwise_values_dict_atlaslevels(
     ids_to_files_dict,
     grouping,
     value_column,
-    allen2intfile,
     selected_hierarchy,
     specified_parent,
     region_list=None,
@@ -141,7 +144,7 @@ def prepare_groupwise_values_dict_atlaslevels(
 
     for sample_id, file in ids_to_files_dict.items():
         id_group = grouping.get(sample_id)
-        data_file = load_and_prepare_data(file, allen2intfile, reverse)
+        data_file = load_and_prepare_data(file, reverse)
 
         if resolved_region_list:
             values_in_file = collect_values_directly(data_file, value_column, resolved_region_list)

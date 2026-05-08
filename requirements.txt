@@ -1,0 +1,10 @@
+atlaslevels==0.3.0
+numpy
+pandas
+matplotlib
+scipy
+altair
+nibabel
+tifffile
+Pillow
+opencv-python
