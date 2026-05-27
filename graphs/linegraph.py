@@ -266,11 +266,12 @@ ax = plt.gca()
 fig = plt.gcf()
 if legend_position == "side":
     fig.subplots_adjust(right=0.72)
-    region_legend = ax.legend(
+    region_legend = fig.legend(
         handles=region_handles,
         title="Regions",
         loc="upper left",
-        bbox_to_anchor=(1.02, 1.0),
+        bbox_to_anchor=(0.74, 0.98),
+        bbox_transform=fig.transFigure,
         borderaxespad=0.0,
     )
 else:
@@ -281,7 +282,7 @@ else:
         bbox_to_anchor=(0.0, 1.0),
         borderaxespad=0.5,
     )
-ax.add_artist(region_legend)
+    ax.add_artist(region_legend)
 
 if split_groups:
     reference_color = contrasting_colors[0] if len(contrasting_colors) > 0 else "black"
@@ -303,7 +304,7 @@ if split_groups:
 
     if legend_position == "side":
         bbox_fig = bbox_disp.transformed(fig.transFigure.inverted())
-        ax.legend(
+        fig.legend(
             handles=split_handles,
             title=secondary_group_label,
             loc="upper left",
