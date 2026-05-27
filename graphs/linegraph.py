@@ -4,6 +4,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.cm import get_cmap
+from matplotlib.colors import to_hex
 from matplotlib.lines import Line2D
 
 parent_dir = Path(__file__).resolve().parent.parent
@@ -32,6 +33,24 @@ def ordered_unique(values):
         if v not in out:
             out.append(v)
     return out
+
+
+def normalize_manual_color(color_value):
+    if isinstance(color_value, str):
+        color_text = color_value.strip()
+        return color_text if color_text.startswith("#") else f"#{color_text}"
+
+    if isinstance(color_value, (list, tuple)) and len(color_value) == 3:
+        rgb = tuple(float(channel) for channel in color_value)
+        if all(0.0 <= channel <= 1.0 for channel in rgb):
+            return to_hex(rgb)
+        if all(0.0 <= channel <= 255.0 for channel in rgb):
+            return to_hex(tuple(channel / 255.0 for channel in rgb))
+
+    raise RuntimeError(
+        "Each manual_region_colors entry must be either a hex string "
+        "or an RGB triplet with values in 0-1 or 0-255."
+    )
 
 
 # -------------------------
@@ -68,6 +87,7 @@ error_metric = cfg["error_metric"]
 secondary_group_label = cfg["secondary_group_label"]
 split_line_styles = cfg["split_line_styles"]
 split_markers = cfg["split_markers"]
+manual_region_colors = cfg.get("manual_region_colors", [])
 
 # -------------------------
 # PATHS
@@ -137,17 +157,25 @@ avg_values_to_group_dict, error_to_region_group_dict, _n_to_group_dict = get_des
 
 plt.figure(figsize=(12, 8))
 x_positions = np.arange(len(x_groups))
+region_ids = list(avg_values_to_group_dict.keys())
 
-if not use_region_colors:
+if manual_region_colors:
+    if len(manual_region_colors) != len(region_ids):
+        raise RuntimeError(
+            "manual_region_colors must have exactly one color per plotted region.\n"
+            f"Expected {len(region_ids)} colors but got {len(manual_region_colors)}."
+        )
+    contrasting_colors = [normalize_manual_color(color_value) for color_value in manual_region_colors]
+elif not use_region_colors:
     cmap = get_cmap("tab10")
-    contrasting_colors = [cmap(i % 10) for i in range(len(avg_values_to_group_dict.keys()))]
+    contrasting_colors = [cmap(i % 10) for i in range(len(region_ids))]
 else:
     contrasting_colors = [
         f"#{color_mapping[region]}" if not str(color_mapping[region]).startswith("#") else color_mapping[region]
-        for region in avg_values_to_group_dict.keys()
+        for region in region_ids
     ]
 
-for i, region_id in enumerate(avg_values_to_group_dict.keys()):
+for i, region_id in enumerate(region_ids):
     if split_groups:
         for j, split_group in enumerate(split_groups):
             combined_keys = [f"{x_group}|||{split_group}" for x_group in x_groups]
@@ -224,7 +252,7 @@ plt.grid(True)
 plt.xticks(x_positions, x_groups, rotation=45)
 
 region_handles = []
-for i, region_id in enumerate(avg_values_to_group_dict.keys()):
+for i, region_id in enumerate(region_ids):
     region_name = id_mapping.get(region_id, region_id)
     region_handles.append(
         Line2D([0], [0], color=contrasting_colors[i], linestyle="-", marker="o", lw=2, label=region_name)
