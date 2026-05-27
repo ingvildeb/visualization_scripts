@@ -25,13 +25,16 @@ plot_title = 'Cell densities'
 # X-axis title (group descriptor such as age/genotype/treatment).
 x_axis_title = 'Group'
 
+# Legend placement: 'inside' to draw over the axes, 'side' to place it to the right.
+legend_position = 'inside'
+
 # If true, use atlas region colors. If false, use contrasting colormap colors.
 use_region_colors = false
 
 # Optional manual region colors in plotted region order.
 # Leave empty to use use_region_colors / default colormap behavior.
 # Examples:
-# manual_region_colors = ['#1f77b4', '#ff7f0e', '#2ca02c']
+# manual_region_colors = ['#3592d4', '#ff7f0e', '#2ca02c']
 # manual_region_colors = [[31, 119, 180], [255, 127, 14], [44, 160, 44]]
 manual_region_colors = []
 

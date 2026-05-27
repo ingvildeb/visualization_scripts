@@ -88,6 +88,7 @@ secondary_group_label = cfg["secondary_group_label"]
 split_line_styles = cfg["split_line_styles"]
 split_markers = cfg["split_markers"]
 manual_region_colors = cfg.get("manual_region_colors", [])
+legend_position = cfg.get("legend_position", "inside")
 
 # -------------------------
 # PATHS
@@ -251,6 +252,9 @@ plt.title(plot_title)
 plt.grid(True)
 plt.xticks(x_positions, x_groups, rotation=45)
 
+if legend_position not in {"inside", "side"}:
+    raise RuntimeError("legend_position must be either 'inside' or 'side'.")
+
 region_handles = []
 for i, region_id in enumerate(region_ids):
     region_name = id_mapping.get(region_id, region_id)
@@ -260,13 +264,23 @@ for i, region_id in enumerate(region_ids):
 
 ax = plt.gca()
 fig = plt.gcf()
-region_legend = ax.legend(
-    handles=region_handles,
-    title="Regions",
-    loc="upper left",
-    bbox_to_anchor=(0.0, 1.0),
-    borderaxespad=0.5,
-)
+if legend_position == "side":
+    fig.subplots_adjust(right=0.72)
+    region_legend = ax.legend(
+        handles=region_handles,
+        title="Regions",
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1.0),
+        borderaxespad=0.0,
+    )
+else:
+    region_legend = ax.legend(
+        handles=region_handles,
+        title="Regions",
+        loc="upper left",
+        bbox_to_anchor=(0.0, 1.0),
+        borderaxespad=0.5,
+    )
 ax.add_artist(region_legend)
 
 if split_groups:
@@ -286,17 +300,29 @@ if split_groups:
         )
     fig.canvas.draw()
     bbox_disp = region_legend.get_window_extent(fig.canvas.get_renderer())
-    bbox_axes = bbox_disp.transformed(ax.transAxes.inverted())
-    second_x = min(max(bbox_axes.x1 + 0.02, 0.0), 0.98)
 
-    ax.legend(
-        handles=split_handles,
-        title=secondary_group_label,
-        loc="upper left",
-        bbox_to_anchor=(second_x, 1.0),
-        borderaxespad=0.5,
-        handlelength=3.0,
-    )
+    if legend_position == "side":
+        bbox_fig = bbox_disp.transformed(fig.transFigure.inverted())
+        ax.legend(
+            handles=split_handles,
+            title=secondary_group_label,
+            loc="upper left",
+            bbox_to_anchor=(bbox_fig.x0, max(bbox_fig.y0 - 0.03, 0.02)),
+            bbox_transform=fig.transFigure,
+            borderaxespad=0.0,
+            handlelength=3.0,
+        )
+    else:
+        bbox_axes = bbox_disp.transformed(ax.transAxes.inverted())
+        second_x = min(max(bbox_axes.x1 + 0.02, 0.0), 0.98)
+        ax.legend(
+            handles=split_handles,
+            title=secondary_group_label,
+            loc="upper left",
+            bbox_to_anchor=(second_x, 1.0),
+            borderaxespad=0.5,
+            handlelength=3.0,
+        )
 
-plt.savefig(str(save_path))
+plt.savefig(str(save_path), bbox_inches="tight" if legend_position == "side" else None)
 plt.show()
